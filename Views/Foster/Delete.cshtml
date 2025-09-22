@@ -1,0 +1,57 @@
+@model PetRescue.Models.Foster
+
+@{
+    ViewData["Title"] = "Delete Foster";
+}
+
+<div class="text-left">
+    <h1 class="display-5">Delete Foster</h1>
+</div>
+
+<div class="text-left">
+    <h3 class="display-6">Are you sure you want to delete this?</h3>
+</div>
+
+<div>
+    <hr />
+    <dl class="row">
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Description)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Description)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.StartDate)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.ValueFor(model => model.StartDate, "{0:dd MMM yyyy}")
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.EndDate)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.ValueFor(model => model.EndDate, "{0:dd MMM yyyy}")
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.ClientID)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.ClientID)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.PetID)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.PetID)
+        </dd>
+    </dl>
+    
+    <form asp-action="Delete">
+        <input type="hidden" asp-for="Id" />
+        <input type="submit" value="Delete" class="btn btn-danger" onclick="return confirm('Are you sure?')" />
+    </form>
+</div>
+<div class="mt-4">
+    <a asp-action="Index">Back to Foster List</a>
+</div>

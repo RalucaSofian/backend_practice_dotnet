@@ -1,0 +1,194 @@
+@using Microsoft.IdentityModel.Tokens
+@using PetRescue.Utilities
+
+@model PaginatedList<PetRescue.Models.Foster>
+
+
+@{
+    ViewData["Title"] = "Foster";
+}
+
+<div class="text-left">
+    <h1 class="display-5">Foster List 🐕</h1>
+</div>
+
+<a class="btn btn-lg btn-outline-primary" asp-action="Create">Add New Foster</a>
+
+
+<form method="get" id="searchForm" class="mt-3 col-sm-3" asp-controller="Foster" asp-action="Index">
+    <div class="input-group">
+        <input type="text" name="searchString" class="form-control" placeholder="Search..." value="@ViewData["SearchString"]"/>
+        <button title="Search" class="input-group-text icon-link align-middle material-symbols-outlined" onclick="searchSubmit(event)">search</button>
+    </div>
+</form>
+
+<form method="get" id="filterForm" class="mt-3 col-m-3" asp-controller="Foster" asp-action="Index">
+    <div class="row">
+        <div class="col">
+            <label>Start Date from:</label>
+            <input type="date" name="startDate_gte" class="form-control" value="@ViewData["StartDateGteFilter"]"/>
+        </div>
+        <div class="col">
+            <label>Start Date to:</label>
+            <input type="date" name="startDate_lt" class="form-control" value="@ViewData["StartDateLtFilter"]"/>
+        </div>
+
+        <div class="col">
+            <label>End Date from:</label>
+            <input type="date" name="endDate_gte" class="form-control" value="@ViewData["EndDateGteFilter"]"/>
+        </div>
+        <div class="col">
+            <label>End Date to:</label>
+            <input type="date" name="endDate_lt" class="form-control" value="@ViewData["EndDateLtFilter"]"/>
+        </div>
+        <div class="col">
+            <label>Client:</label>
+            <select name="clientId" class="form-control" asp-for="@ViewData["ClientFilter"]" asp-items="ViewBag.ClientID">
+                <option default selected value="">Select Client</option>
+            </select>
+        </div>
+        <div class="col">
+            <label>Pet:</label>
+            <select name="petId" class="form-control" asp-for="@ViewData["PetFilter"]" asp-items="ViewBag.PetId">
+                <option default value="">Select Pet</option>
+            </select>
+        </div>
+        <div class="col d-flex flex-column justify-content-end">
+            <button title="Apply all Filters" class="btn btn-sm btn-outline-primary" onclick="filterSubmit(event)">Filter</button>
+        </div>
+    </div>
+</form>
+
+
+<table class="table table-hover mt-3 display-7">
+    <thead class="thead-dark">
+        <tr>
+            <th scope="col">#
+                <span class="icon-link align-bottom material-symbols-outlined" onclick="orderSubmit('@ViewData["NextIdSort"]')">
+                    @if((string)@ViewData["CrtSortOrder"]! == "id_asc") {
+                        <text>keyboard_arrow_up</text>
+                    } else if((string)@ViewData["CrtSortOrder"]! == "id_desc") {
+                        <text>keyboard_arrow_down</text>
+                    } else {
+                        <text>expand_all</text>
+                    }
+                </span>
+            </th>
+            <th scope="col">Description</th>
+            <th scope="col">Start Date
+                <span class="icon-link align-bottom material-symbols-outlined" onclick="orderSubmit('@ViewData["NextStDateSort"]')">
+                    @if((string)@ViewData["CrtSortOrder"]! == "startDate_asc") {
+                        <text>keyboard_arrow_up</text>
+                    } else if((string)@ViewData["CrtSortOrder"]! == "startDate_desc") {
+                        <text>keyboard_arrow_down</text>
+                    } else {
+                        <text>expand_all</text>
+                    }
+                </span>
+            </th>
+            <th scope="col">End Date
+                <span class="icon-link align-bottom material-symbols-outlined" onclick="orderSubmit('@ViewData["NextEndDateSort"]')">
+                    @if((string)@ViewData["CrtSortOrder"]! == "endDate_asc") {
+                        <text>keyboard_arrow_up</text>
+                    } else if((string)@ViewData["CrtSortOrder"]! == "endDate_desc") {
+                        <text>keyboard_arrow_down</text>
+                    } else {
+                        <text>expand_all</text>
+                    }
+                </span>
+            </th>
+            <th scope="col">Client ID
+                <span class="icon-link align-bottom material-symbols-outlined" onclick="orderSubmit('@ViewData["NextClientIdSort"]')">
+                    @if((string)@ViewData["CrtSortOrder"]! == "clientId_asc") {
+                        <text>keyboard_arrow_up</text>
+                    } else if((string)@ViewData["CrtSortOrder"]! == "clientId_desc") {
+                        <text>keyboard_arrow_down</text>
+                    } else {
+                        <text>expand_all</text>
+                    }
+                </span>
+            </th>
+            <th scope="col">Pet ID
+                <span class="icon-link align-bottom material-symbols-outlined" onclick="orderSubmit('@ViewData["NextPetIdSort"]')">
+                    @if((string)@ViewData["CrtSortOrder"]! == "petId_asc") {
+                        <text>keyboard_arrow_up</text>
+                    } else if((string)@ViewData["CrtSortOrder"]! == "petId_desc") {
+                        <text>keyboard_arrow_down</text>
+                    } else {
+                        <text>expand_all</text>
+                    }
+                </span>
+            </th>
+            <th scope="col">Options</th>
+        </tr>
+    </thead>
+    <tbody>
+@if(Model.IsNullOrEmpty()) {
+        <tr>
+            <td style="text-align: center; font-size: 2rem; font-weight: 300;" colspan="7">
+                @if((!string.IsNullOrEmpty((string)ViewData["SearchString"]!)) || (!string.IsNullOrEmpty((string)ViewData["StartDateGteFilter"]!)) ||
+                    (!string.IsNullOrEmpty((string)ViewData["StartDateLtFilter"]!)) || (!string.IsNullOrEmpty((string)ViewData["EndDateGteFilter"]!)) ||
+                    (!string.IsNullOrEmpty((string)ViewData["EndDateLtFilter"]!)) || ((int)ViewData["ClientFilter"]! != 0) ||
+                    ((int)ViewData["PetFilter"]! != 0)) {
+                    <text>No Results found.</text>
+                } else {
+                    <text>No Foster registered.</text>
+                }
+            </td>
+        </tr>
+}
+@foreach (var item in Model) {
+        <tr class="@(item.EndDate < DateOnly.FromDateTime(DateTime.Now) ? "date-expired" : "")">
+            <td>
+                @Html.DisplayFor(modelItem => item.Id)
+            </td>
+            <td class="long-text text-truncate">
+                <a asp-controller="Foster" asp-action="Details" asp-route-id="@item.Id" style="text-decoration: none; color: black;">
+                    @Html.DisplayFor(modelItem => item.Description)
+                </a>
+            </td>
+            <td>
+                @Html.ValueFor(modelItem => item.StartDate, "{0:dd MMM yyyy}")
+            </td>
+            <td>
+                @Html.ValueFor(modelItem => item.EndDate, "{0:dd MMM yyyy}")
+            </td>
+            <td>
+                <a asp-controller="Client" asp-action="Details" asp-route-id="@item.ClientID">
+                    @(item.Client is null ? "-" : item.ClientID)
+                </a>
+            </td>
+            <td>
+                <a asp-controller="Pets" asp-action="Details" asp-route-id="@item.PetID">
+                    @(item.Pet is null ? "-" : item.PetID)
+                </a>
+            </td>
+            <td>
+                <a asp-action="Details" asp-route-id="@item.Id" class="icon-link", title="Details">
+                    <span class="material-symbols-outlined">more_horiz</span>
+                </a>
+                <a asp-action="Edit" asp-route-id="@item.Id" class="icon-link", title="Edit">
+                    <span class="material-symbols-outlined">edit</span>
+                </a>
+                <a asp-action="Delete" asp-route-id="@item.Id" class="icon-link", title="Delete">
+                    <span class="material-symbols-outlined">delete</span>
+                </a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>
+
+
+@{
+    var prevDisabled = !Model.HasPreviousPage ? "disabled" : "";
+    var nextDisabled = !Model.HasNextPage ? "disabled" : "";
+}
+
+<button class="btn btn-outline-primary @prevDisabled" onclick="pagingSubmit(@ViewData["CrtPage"] - 1)">
+    Prev
+</button>
+
+<button class="btn btn-outline-primary @nextDisabled" onclick="pagingSubmit(@ViewData["CrtPage"] + 1)">
+    Next
+</button>

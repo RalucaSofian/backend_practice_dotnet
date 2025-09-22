@@ -1,0 +1,30 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using PetRescue.Models
+
+@inject SignInManager<User> SignInManager
+
+
+@{
+    ViewData["Title"] = "Admin Panel";
+}
+
+@if (SignInManager.IsSignedIn(User))
+{
+    <div class="text-center">
+        <h1 class="display-4">Welcome to the Admin Panel</h1>
+        <p class="lead">Create, edit, and delete all of the data related to our Pet Rescue</p>
+    </div>
+
+    <h1 class="display-6">Quick Access</h1>
+
+    <div class="d-grid gap-1 col-3 mx-feft">
+        <a href="/admin/users" class="btn btn-lg btn-outline-primary" role="button">Users</a>
+        <a href="/admin/clients" class="btn btn-lg btn-outline-primary" role="button">Clients</a>
+        <a href="/admin/pets" class="btn btn-lg btn-outline-primary" role="button">Pets</a>
+        <a href="/admin/foster" class="btn btn-lg btn-outline-primary" role="button">Foster</a>
+    </div>
+}
+else
+{
+    @await Html.PartialAsync("Welcome")
+}

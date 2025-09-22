@@ -1,0 +1,71 @@
+@model PetRescue.Models.Client
+
+@{
+    ViewData["Title"] = "Client Details";
+}
+
+<div class="text-left">
+    <h1 class="display-5">Client Details</h1>
+</div>
+
+<div>
+    <hr />
+    <dl class="row">
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Id)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Id)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Name)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Name)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Address)
+        </dt>
+        <dd class = "col-sm-10" style="@(Model.Address is null ? "color:orangered" : Model.Address)">
+            @(Model.Address is null ? "NOT SET" : Model.Address)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Phone)
+        </dt>
+        <dd class = "col-sm-10" style="@(Model.Phone is null ? "color:orangered" : Model.Phone)">
+            @(Model.Phone is null ? "NOT SET" : Model.Phone)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Description)
+        </dt>
+        <dd class = "col-sm-10" style="@(Model.Description is null ? "color:orangered" : Model.Description)">
+            @(Model.Description is null ? "NOT SET" : Model.Description)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.User)
+        </dt>
+        <dd class = "col-sm-10" >
+            @if(Model.UserID is null) {
+                <span style="color:orangered;">NOT SET</span>
+            } else {
+                <a type="button" style="min-width: 20px;" asp-controller="Users" asp-action="Details" asp-route-id="@Model.UserID">@Model.User!.Email</a>
+            }
+            <input id="UserDetailsBtn" type="button" class="ms-3 btn btn-sm btn-outline-primary" value="Show User Details" onclick="slidePanel(['UserDetails']); changeBtnText('UserDetailsBtn')"/>
+        </dd>
+        <dt class="col-sm-12 fw-normal">
+            <asp:Panel ID="UserDetails" runat="server" style="display: none;">
+                <ul>
+                    <li>User Email: @(Model.User is null ? "-" : Model.User.Email)</li>
+                    <li>User Role: @(Model.User is null ? "-" : Model.User.Role)</li>
+                    <li>User Name: @(Model.User is null ? "-" : (Model.User.Name is null ? "-" : Model.User.Name))</li>
+                </ul>
+            </asp:Panel>
+        </dt>
+    </dl>
+</div>
+<div>
+    <a class="btn btn-primary" asp-action="Edit" asp-route-id="@Model?.Id">Edit</a>
+</div>
+<div class="mt-4">
+    <a asp-action="Index">Back to Clients List</a>
+</div>

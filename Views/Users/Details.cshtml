@@ -1,0 +1,45 @@
+@model PetRescue.Models.User
+
+@{
+    ViewData["Title"] = "User Details";
+}
+
+<div class="text-left">
+    <h1 class="display-5">User Details</h1>
+</div>
+
+<div>
+    <hr />
+    <dl class="row">
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Id)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Id)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Email)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Email)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Role)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Role)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Name)
+        </dt>
+        <dd class = "col-sm-10" style="@(Model.Name is null ? @Html.Raw("color:orangered") : @Html.Raw(Model.Name))">
+            @(Model.Name is null ? "NOT SET" : Model.Name)
+        </dd>
+    </dl>
+</div>
+<div>
+    <a class="btn btn-primary" asp-action="Edit" asp-route-id="@Model?.Id">Edit</a>
+</div>
+<div class="mt-4">
+    <a asp-action="Index">Back to Users List</a>
+</div>

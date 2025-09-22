@@ -1,0 +1,133 @@
+@using Microsoft.IdentityModel.Tokens
+@using PetRescue.Utilities
+
+@model PaginatedList<PetRescue.Models.User>
+
+
+@{
+    ViewData["Title"] = "Users";
+}
+
+<div class="text-left">
+    <h1 class="display-5">Users List 👨‍💻</h1>
+</div>
+
+<a class="btn btn-lg btn-outline-primary" asp-action="Create">Add New User</a>
+
+<form method="get" id="searchForm" class="mt-3 col-sm-3" asp-controller="Users" asp-action="Index">
+    <div class="input-group">
+        <input type="text" name="searchString" class="form-control" placeholder="Search..." value="@ViewData["SearchString"]"/>
+        <button title="Search" class="input-group-text icon-link align-middle material-symbols-outlined" onclick="searchSubmit(event)">search</button>
+    </div>
+</form>
+
+<form method="get" id="filterForm" class="mt-3 col-m-3" asp-controller="Users" asp-action="Index">
+    <div class="row">
+        <div class="col-sm-3">
+            <label>User Role:</label>
+            <select name="userRole" class="form-control" asp-for="@ViewData["UserRoleFilter"]" asp-items="ViewBag.UserRoleOptions">
+                <option default value="">Select Role</option>
+            </select>
+        </div>
+        <div class="col-sm-1 d-flex flex-column justify-content-end">
+            <button title="Apply all Filters" class="btn btn-sm btn-outline-primary" onclick="filterSubmit(event)">Filter</button>
+        </div>
+    </div>
+</form>
+
+
+<table class="table table-hover mt-3 display-7">
+    <thead class="thead-dark">
+        <tr>
+            <th scope="col">Email
+                <span class="icon-link align-bottom material-symbols-outlined" onclick="orderSubmit('@ViewData["NextEmailSort"]')">
+                    @if((string)@ViewData["CrtSortOrder"]! == "email_asc") {
+                        <text>keyboard_arrow_up</text>
+                    } else if((string)@ViewData["CrtSortOrder"]! == "email_desc") {
+                        <text>keyboard_arrow_down</text>
+                    } else {
+                        <text>expand_all</text>
+                    }
+                </span>
+            </th>
+            <th scope="col">Name
+                <span class="icon-link align-bottom material-symbols-outlined" onclick="orderSubmit('@ViewData["NextNameSort"]')">
+                    @if((string)@ViewData["CrtSortOrder"]! == "name_asc") {
+                        <text>keyboard_arrow_up</text>
+                    } else if((string)@ViewData["CrtSortOrder"]! == "name_desc") {
+                        <text>keyboard_arrow_down</text>
+                    } else {
+                        <text>expand_all</text>
+                    }
+                </span>
+            </th>
+            <th scope="col">Role
+                <span class="icon-link align-bottom material-symbols-outlined" onclick="orderSubmit('@ViewData["NextRoleSort"]')">
+                    @if((string)@ViewData["CrtSortOrder"]! == "role_asc") {
+                        <text>keyboard_arrow_up</text>
+                    } else if((string)@ViewData["CrtSortOrder"]! == "role_desc") {
+                        <text>keyboard_arrow_down</text>
+                    } else {
+                        <text>expand_all</text>
+                    }
+                </span>
+            </th>
+            <th scope="col">Options</th>
+        </tr>
+    </thead>
+    <tbody>
+@if(Model.IsNullOrEmpty()) {
+        <tr>
+            <td style="text-align: center; font-size: 2rem; font-weight: 300;" colspan="7">
+                @if((!string.IsNullOrEmpty((string)ViewData["SearchString"]!)) || (!string.IsNullOrEmpty((string)ViewData["UserRoleFilter"]!.ToString()!))) {
+                    <text>No Results found.</text>
+                } else {
+                    <text>No Users registered.</text>
+                }
+            </td>
+        </tr>
+}
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                <a asp-controller="Users" asp-action="Details" asp-route-id="@item.Id" style="text-decoration: none; color: black;">
+                    @Html.DisplayFor(modelItem => item.Email)
+                </a>
+            </td>
+            <td>
+                <a style="@(item.Name is null ? @Html.Raw("color:orangered") : @Html.Raw(item.Name))">
+                    @(item.Name == null ? "NOT SET" : item.Name)
+                </a>
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Role)
+            </td>
+            <td>
+                <a asp-action="Details" asp-route-id="@item.Id" class="icon-link", title="Details">
+                    <span class="material-symbols-outlined">more_horiz</span>
+                </a>
+                <a asp-action="Edit" asp-route-id="@item.Id" class="icon-link", title="Edit">
+                    <span class="material-symbols-outlined">edit</span>
+                </a>
+                <a asp-action="Delete" asp-route-id="@item.Id" class="icon-link", title="Delete">
+                    <span class="material-symbols-outlined">delete</span>
+                </a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>
+
+
+@{
+    var prevDisabled = !Model.HasPreviousPage ? "disabled" : "";
+    var nextDisabled = !Model.HasNextPage ? "disabled" : "";
+}
+
+<button class="btn btn-outline-primary @prevDisabled" onclick="pagingSubmit(@ViewData["CrtPage"] - 1)">
+    Prev
+</button>
+
+<button class="btn btn-outline-primary @nextDisabled" onclick="pagingSubmit(@ViewData["CrtPage"] + 1)">
+    Next
+</button>

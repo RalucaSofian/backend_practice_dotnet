@@ -1,0 +1,79 @@
+@model PetRescue.Models.Foster
+
+@{
+    ViewData["Title"] = "Foster Details";
+}
+
+<div class="text-left">
+    <h1 class="display-5">Foster Details</h1>
+</div>
+
+<div>
+    <hr />
+    <dl class="row">
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Description)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Description)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.StartDate)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.ValueFor(model => model.StartDate, "{0:dd MMM yyyy}")
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.EndDate)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.ValueFor(model => model.EndDate, "{0:dd MMM yyyy}")
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.ClientID)
+        </dt>
+        <dd class = "col-sm-10">
+            <a type="button" style="min-width: 20px;" asp-controller="Client" asp-action="Details" asp-route-id="@Model.ClientID">
+                @(Model.Client is null ? "-" : Model.ClientID)
+            </a>
+            <input id="ClientDetailsBtn" type="button" class="ms-3 btn btn-sm btn-outline-primary" value="Show Client Details" onclick="slidePanel(['ClientDetails']); changeBtnText('ClientDetailsBtn')" />
+        </dd>
+        <dt class="col-sm-12 fw-normal">
+            <asp:Panel ID="ClientDetails" runat="server" style="display: none;">
+                <ul>
+                    <li>Client Name: @(Model.Client is null ? "-" : Model.Client.Name)</li>
+                    <li>Client Address: @(Model.Client is null ? "-" : Model.Client.Address)</li>
+                    <li>Client Phone: @(Model.Client is null ? "-" : Model.Client.Phone)</li>
+                    <li>Client Description: @(Model.Client is null ? "-" : Model.Client.Description)</li>
+                    <li>Client User ID: @(Model.Client is null ? "-" : Model.Client.UserID)</li>
+                </ul>
+            </asp:Panel>
+        </dt>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.PetID)
+        </dt>
+        <dd class = "col-sm-10">
+            <a type="button" style="min-width: 20px;" asp-controller="Pets" asp-action="Details" asp-route-id="@Model.PetID">
+                @(Model.Pet is null ? "-" : Model.PetID)
+            </a>
+            <input id="PetDetailsBtn" type="button" class="ms-3 btn btn-sm btn-outline-primary" value="Show Pet Details" onclick="slidePanel(['PetDetails']); changeBtnText('PetDetailsBtn')"/>
+        </dd>
+        <dt class="col-sm-12 fw-normal">
+            <asp:Panel ID="PetDetails" runat="server" style="display: none;">
+                <ul>
+                    <li>Pet Name: @(Model.Pet is null ? "-" : Model.Pet.Name)</li>
+                    <li>Pet Species: @(Model.Pet is null ? "-" : Model.Pet.Species)</li>
+                    <li>Pet Gender: @(Model.Pet is null ? "-" : Model.Pet.Gender)</li>
+                    <li>Pet Age: @(Model.Pet is null ? "-" : Model.Pet.Age)</li>
+                    <li>Pet Description: @(Model.Pet is null ? "-" : Model.Pet.Description)</li>
+                </ul>
+            </asp:Panel>
+        </dt>
+    </dl>
+</div>
+<div>
+    <a class="btn btn-primary" asp-action="Edit" asp-route-id="@Model?.Id">Edit</a>
+</div>
+<div class="mt-4">
+    <a asp-action="Index">Back to Foster List</a>
+</div>

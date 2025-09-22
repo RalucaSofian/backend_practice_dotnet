@@ -1,0 +1,52 @@
+@model PetRescue.ViewModels.LoginViewModel
+
+@{
+    ViewData["Title"] = "Log in";
+}
+
+<div class="text-center">
+    <h1 class="display-5">Login</h1>
+    <small> You must be logged in to access this content</small>
+</div>
+
+<div class="container mt-3">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <form asp-action="Login">
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                        <div class="form-group mt-2">
+                            <label asp-for="Email" class="control-label"></label>
+                            <input asp-for="Email" class="form-control" placeholder="Enter email" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+                        <div class="form-group mt-2">
+                            <label asp-for="Password" class="control-label"></label>
+                            <input type="password" asp-for="Password" class="form-control" placeholder="Enter password" />
+                            <span asp-validation-for="Password" class="text-danger"></span>
+                        </div>
+                        <div class="form-group mt-3 d-flex justify-content-between">
+                            <div class="form-check col-6 ">
+                                <label class="form-check-label">
+                                    <input class="form-check-input" asp-for="RememberMe" /> @Html.DisplayNameFor(model => model.RememberMe)
+                                </label>
+                            </div>
+                            <a asp-controller="Admin" asp-action="ForgotPassword">Forgot your password?</a>
+                        </div>
+                        <div class="form-group mt-3 mb-2">
+                            <div class="d-grid">
+                                <input type="submit" value="Log in" class="btn btn-block btn-outline-primary" />
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

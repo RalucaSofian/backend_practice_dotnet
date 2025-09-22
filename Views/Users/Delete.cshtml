@@ -1,0 +1,45 @@
+@model PetRescue.Models.User
+
+@{
+    ViewData["Title"] = "Delete User";
+}
+
+<div class="text-left">
+    <h1 class="display-5">Delete User</h1>
+</div>
+
+<div class="text-left">
+    <h3 class="display-6">Are you sure you want to delete this?</h3>
+</div>
+
+<div>
+    <hr />
+    <dl class="row">
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Email)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Email)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Role)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Role)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Name)
+        </dt>
+        <dd class = "col-sm-10" style="@(Model.Name is null ? @Html.Raw("color:orangered") : @Html.Raw(Model.Name))">
+            @(Model.Name is null ? "NOT SET" : Model.Name)
+        </dd>
+    </dl>
+    
+    <form asp-action="Delete">
+        <input type="hidden" asp-for="Id" />
+        <input type="submit" value="Delete" class="btn btn-danger" onclick="return confirm('Are you sure?')"/>
+    </form>
+</div>
+<div class="mt-4">
+    <a asp-action="Index">Back to Users List</a>
+</div>

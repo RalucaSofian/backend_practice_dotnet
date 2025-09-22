@@ -1,0 +1,55 @@
+@model PetRescue.Models.User
+
+@{
+    ViewData["Title"] = "Edit User Details";
+}
+
+<div class="text-left">
+    <h1 class="display-5">Edit User</h1>
+</div>
+
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Edit">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="Id" />
+            <div class="form-group">
+                <label asp-for="Email" class="fw-bold control-label">Email *</label>
+                <input asp-for="Email" class="form-control" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Role" class="fw-bold control-label">Role *</label>
+                <select asp-for="Role" id="User.Role" class="form-control">
+                    <option value="">-- Select User Role --</option>
+                    <option value="ADMIN">ADMIN</option>
+                    <option value="USER">USER</option>
+                </select>
+                <span asp-validation-for="Role" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Name" class="fw-bold control-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <div class="mt-3 form-group">
+                <input type="submit" value="Save" class="btn btn-primary" />
+            </div>
+        </form>
+        <form asp-action="ForgotPassword" asp-route-id="@Model.Id" >
+            <input type="hidden" asp-for="Id" />
+            <div class="mt-2 form-group">
+                <input type="submit" value="Reset User Password" class="btn btn-danger" onclick="return confirm('Are you sure?')" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a asp-action="Index">Back to Users List</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
