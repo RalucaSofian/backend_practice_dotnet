@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -5,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 using PetRescue.Data;
 using PetRescue.Models;
+using PetRescue.Services;
 using PetRescue.Utilities;
 
 
@@ -14,11 +16,13 @@ namespace PetRescue.Controllers;
 [Route("admin/clients")]
 public class ClientController : Controller
 {
-    private readonly PetRescueContext _context;
+    private readonly ClientService _clientService;
+    private readonly UserService _userService;
 
-    public ClientController(PetRescueContext context)
+    public ClientController(ClientService clientService, UserService userService)
     {
-        _context = context;
+        _clientService = clientService;
+        _userService = userService;
     }
 
     // GET: clients
@@ -26,74 +30,19 @@ public class ClientController : Controller
     public async Task<IActionResult> Index(string searchString, bool? hasUser, string sortOrder,
                                             int pageSize = 6, int pageNumber = 1)
     {
-        IQueryable<Client> finalClientObjects = _context.Clients.Include(c => c.User);
+        var finalClientObjects = await _clientService.QueryClients(searchString, hasUser, sortOrder, pageSize, pageNumber);
 
         // Searching
         ViewData["SearchString"] = searchString;
-        if (!string.IsNullOrEmpty(searchString))
-        {
-            var upperSearchString = searchString.ToUpper();
-            var couldParse = int.TryParse(searchString, out int numValue);
-
-            finalClientObjects = finalClientObjects.Where(s =>
-                s.Name.ToUpper().Contains(upperSearchString) ||
-                s.Address!.ToUpper().Contains(upperSearchString) ||
-                s.Phone!.ToUpper().Contains(upperSearchString) ||
-                s.Description!.ToUpper().Contains(upperSearchString) ||
-                (couldParse && s.UserID!.Equals(numValue)) ||
-                s.User!.Email!.ToUpper().Contains(upperSearchString));
-        }
 
         // Filtering
         ViewData["HasUserOptions"] = new SelectList(new List<bool> { true, false });
         if (hasUser != null)
         {
-            if (hasUser == true)
-            {
-                finalClientObjects = finalClientObjects.Where(c => c.UserID != null);
-            }
-            else
-            {
-                finalClientObjects = finalClientObjects.Where(c => c.UserID == null);
-            }
             ViewData["UserFilter"] = hasUser;
         }
 
         // Ordering
-        if (!string.IsNullOrEmpty(sortOrder))
-        {
-            switch (sortOrder)
-            {
-                case "id_asc":
-                    finalClientObjects = finalClientObjects.OrderBy(c => c.Id);
-                    break;
-                case "id_desc":
-                    finalClientObjects = finalClientObjects.OrderByDescending(c => c.Id);
-                    break;
-                case "name_asc":
-                    finalClientObjects = finalClientObjects.OrderBy(c => c.Name);
-                    break;
-                case "name_desc":
-                    finalClientObjects = finalClientObjects.OrderByDescending(c => c.Name);
-                    break;
-                case "addr_asc":
-                    finalClientObjects = finalClientObjects.OrderBy(c => c.Address);
-                    break;
-                case "addr_desc":
-                    finalClientObjects = finalClientObjects.OrderByDescending(c => c.Address);
-                    break;
-                case "user_asc":
-                    finalClientObjects = finalClientObjects.OrderBy(c => c.User!.Email);
-                    break;
-                case "user_desc":
-                    finalClientObjects = finalClientObjects.OrderByDescending(c => c.User!.Email);
-                    break;
-                default:
-                    finalClientObjects = finalClientObjects.OrderBy(c => c.Id);
-                    break;
-            }
-        }
-
         if (string.IsNullOrEmpty(sortOrder) || !sortOrder.StartsWith("id_"))
         {
             ViewData["NextIdSort"] = "id_asc";
@@ -134,34 +83,28 @@ public class ClientController : Controller
 
         // Paging
         ViewData["CrtPage"] = pageNumber;
-        return View(await PaginatedList<Client>.CreateAsyncList(finalClientObjects.AsNoTracking(), pageNumber, pageSize));
+        return View(finalClientObjects);
     }
 
     // GET: clients/{id}
     [Route("{id}")]
-    public async Task<IActionResult> Details(int? id)
+    public async Task<IActionResult> Details(int id)
     {
-        if (id == null)
+        var client = await _clientService.GetClient(id);
+        if (client == null)
         {
             return NotFound();
         }
 
-        var clientModel = await _context.Clients
-            .Include(c => c.User)
-            .FirstOrDefaultAsync(m => m.Id == id);
-        if (clientModel == null)
-        {
-            return NotFound();
-        }
-
-        return View(clientModel);
+        return View(client);
     }
 
     // GET: clients/create
     [Route("create")]
-    public IActionResult Create()
+    public async Task<IActionResult> Create()
     {
-        ViewBag.UserID = new SelectList(_context.Users.ToList(), "Id", "Email");
+        var allUsers = await _userService.GetAllUsers();
+        ViewBag.UserID = new SelectList(allUsers, "Id", "Email");
         return View();
     }
 
@@ -169,87 +112,76 @@ public class ClientController : Controller
     [Route("create")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Id,Name,Address,Phone,Description,UserID")] Client clientModel)
+    public async Task<IActionResult> Create([Bind("Id,Name,Address,Phone,Description,UserID")] Client client)
     {
         if (ModelState.IsValid)
         {
-            _context.Add(clientModel);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+            var createdClient = await _clientService.CreateClient(client);
+            if (createdClient != null)
+            {
+                return RedirectToAction(nameof(Index));
+            }
+            else
+            {
+                return View(client);
+            }
         }
-        return View(clientModel);
+        return View(client);
     }
 
     // GET: clients/edit/{id}
     [Route("edit/{id}")]
-    public async Task<IActionResult> Edit(int? id)
+    public async Task<IActionResult> Edit(int id)
     {
-        if (id == null)
+        var allUsers = await _userService.GetAllUsers();
+        ViewBag.UserID = new SelectList(allUsers, "Id", "Email");
+
+        var client = await _clientService.GetClient(id);
+        if (client == null)
         {
             return NotFound();
         }
-
-        ViewBag.UserID = new SelectList(_context.Users.ToList(), "Id", "Email");
-
-        var clientModel = await _context.Clients.FindAsync(id);
-        if (clientModel == null)
-        {
-            return NotFound();
-        }
-        return View(clientModel);
+        return View(client);
     }
 
     // POST: clients/edit/{id}
     [Route("edit/{id}")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Address,Phone,Description,UserID")] Client clientModel)
+    public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Address,Phone,Description,UserID")] Client client)
     {
-        if (id != clientModel.Id)
+        if (id != client.Id)
         {
             return NotFound();
         }
 
         if (ModelState.IsValid)
         {
-            try
+            var editedClient = await _clientService.EditClient(client);
+            if (editedClient != null)
             {
-                _context.Update(clientModel);
-                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(Index));
             }
-            catch (DbUpdateConcurrencyException)
+            else
             {
-                if (!ClientModelExists(clientModel.Id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                return View(client);
             }
-            return RedirectToAction(nameof(Index));
         }
-        return View(clientModel);
+
+        return View(client);
     }
 
     // GET: clients/delete/{id}
     [Route("delete/{id}")]
-    public async Task<IActionResult> Delete(int? id)
+    public async Task<IActionResult> Delete(int id)
     {
-        if (id == null)
+        var client = await _clientService.GetClient(id);
+        if (client == null)
         {
             return NotFound();
         }
 
-        var clientModel = await _context.Clients
-            .FirstOrDefaultAsync(m => m.Id == id);
-        if (clientModel == null)
-        {
-            return NotFound();
-        }
-
-        return View(clientModel);
+        return View(client);
     }
 
     // POST: clients/delete/{id}
@@ -258,18 +190,7 @@ public class ClientController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
-        var clientModel = await _context.Clients.FindAsync(id);
-        if (clientModel != null)
-        {
-            _context.Clients.Remove(clientModel);
-        }
-
-        await _context.SaveChangesAsync();
+        await _clientService.DeleteClient(id);
         return RedirectToAction(nameof(Index));
-    }
-
-    private bool ClientModelExists(int id)
-    {
-        return _context.Clients.Any(e => e.Id == id);
     }
 }

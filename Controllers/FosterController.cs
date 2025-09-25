@@ -1,11 +1,14 @@
 using System.Globalization;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.CodeAnalysis.Elfie.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 using PetRescue.Data;
 using PetRescue.Models;
+using PetRescue.Services;
 using PetRescue.Utilities;
 
 
@@ -15,30 +18,36 @@ namespace PetRescue.Controllers;
 [Route("admin/foster")]
 public class FosterController : Controller
 {
-    private readonly PetRescueContext _context;
+    private readonly FosterService _fosterService;
+    private readonly ClientService _clientService;
+    private readonly PetService _petService;
 
-    public FosterController(PetRescueContext context)
+    public FosterController(FosterService fosterService, ClientService clientService, PetService petService)
     {
-        _context = context;
+        _fosterService = fosterService;
+        _clientService = clientService;
+        _petService = petService;
     }
 
-    private async Task ValidateFosterDates(Foster fosterModel)
-    {
-        var foundFosters = await _context.Fosters.Where(f => f.PetID == fosterModel.PetID && f.Id != fosterModel.Id).ToListAsync();
 
-        if (foundFosters.Any(f => f.EndDate == null && f.StartDate < fosterModel.EndDate))
+    private async Task ValidateFosterDates(Foster foster)
+    {
+        var foundFoster = await _fosterService.GetFosterForPet(foster);
+
+        if (foundFoster.Any(f => f.EndDate == null && f.StartDate < foster.EndDate))
         {
             ModelState.AddModelError("", "(Open-ended Foster) Conflicting Foster interval for the same Pet.");
         }
-        if (fosterModel.EndDate == null)
+
+        if (foster.EndDate == null)
         {
-            if (foundFosters.Any(f => f.EndDate > fosterModel.StartDate))
+            if (foundFoster.Any(f => f.EndDate > foster.StartDate))
             {
                 ModelState.AddModelError("", "(Open-ended Foster) Conflicting Foster interval for the same Pet.");
             }
         }
 
-        if (foundFosters.Any(f => f.EndDate > fosterModel.StartDate && f.StartDate < fosterModel.EndDate))
+        if (foundFoster.Any(f => f.EndDate > foster.StartDate && f.StartDate < foster.EndDate))
         {
             ModelState.AddModelError("", "Conflicting Foster interval for the same Pet.");
         }
@@ -52,101 +61,50 @@ public class FosterController : Controller
                                            int clientId, int petId,
                                            int pageSize = 6, int pageNumber = 1)
     {
-        var fosterObjects = _context.Fosters.Include(f => f.Pet).Include(f => f.Client);
-        var finalFosterObjects = from fo in fosterObjects select fo;
+        var finalFosterObjects = await _fosterService.QueryFoster(searchString, sortOrder, startDate_gte, startDate_lt,
+                                    endDate_gte, endDate_lt, clientId, petId, pageSize, pageNumber);
 
         // Searching
         ViewData["SearchString"] = searchString;
-        if (!string.IsNullOrEmpty(searchString))
-        {
-            var upperSearchString = searchString.ToUpper();
-            finalFosterObjects = finalFosterObjects.Where(s =>
-                s.Description!.ToUpper().Contains(upperSearchString) ||
-                s.Client!.Name.ToUpper().Contains(upperSearchString) ||
-                s.Pet!.Name.ToUpper().Contains(upperSearchString));
-        }
 
         // Filtering
-        ViewData["ClientID"] = new SelectList(_context.Clients, "Id", "Name");
-        ViewData["PetID"] = new SelectList(_context.Pets, "Id", "Name");
+        var allClients = await _clientService.GetAllClients();
+        var allPets = await _petService.GetAllPets();
+
+        ViewData["ClientID"] = new SelectList(allClients, "Id", "Name");
+        ViewData["PetID"] = new SelectList(allPets, "Id", "Name");
 
         if (startDate_gte != DateOnly.MinValue)
         {
-            finalFosterObjects = finalFosterObjects.Where(fo => fo.StartDate >= startDate_gte);
             ViewData["StartDateGteFilter"] = startDate_gte.ToString("o", CultureInfo.InvariantCulture);
         }
 
         if (startDate_lt != DateOnly.MinValue)
         {
-            finalFosterObjects = finalFosterObjects.Where(fo => fo.StartDate < startDate_lt);
             ViewData["StartDateLtFilter"] = startDate_lt.ToString("o", CultureInfo.InvariantCulture);
         }
 
         if (endDate_gte != DateOnly.MinValue)
         {
-            finalFosterObjects = finalFosterObjects.Where(fo => fo.EndDate >= endDate_gte);
             ViewData["EndDateGteFilter"] = endDate_gte.ToString("o", CultureInfo.InvariantCulture);
         }
 
         if (endDate_lt != DateOnly.MinValue)
         {
-            finalFosterObjects = finalFosterObjects.Where(fo => fo.EndDate < endDate_lt);
             ViewData["EndDateLtFilter"] = endDate_lt.ToString("o", CultureInfo.InvariantCulture);
         }
 
         if (clientId != 0)
         {
-            finalFosterObjects = finalFosterObjects.Where(fo => fo.Client!.Id == clientId);
             ViewData["ClientFilter"] = clientId;
         }
 
         if (petId != 0)
         {
-            finalFosterObjects = finalFosterObjects.Where(fo => fo.Pet!.Id == petId);
             ViewData["PetFilter"] = petId;
         }
 
         // Ordering
-        if (!string.IsNullOrEmpty(sortOrder))
-        {
-            switch (sortOrder)
-            {
-                case "id_asc":
-                    finalFosterObjects = finalFosterObjects.OrderBy(fo => fo.Id);
-                    break;
-                case "id_desc":
-                    finalFosterObjects = finalFosterObjects.OrderByDescending(fo => fo.Id);
-                    break;
-                case "startDate_asc":
-                    finalFosterObjects = finalFosterObjects.OrderBy(fo => fo.StartDate);
-                    break;
-                case "startDate_desc":
-                    finalFosterObjects = finalFosterObjects.OrderByDescending(fo => fo.StartDate);
-                    break;
-                case "endDate_asc":
-                    finalFosterObjects = finalFosterObjects.OrderBy(fo => fo.EndDate);
-                    break;
-                case "endDate_desc":
-                    finalFosterObjects = finalFosterObjects.OrderByDescending(fo => fo.EndDate);
-                    break;
-                case "clientId_asc":
-                    finalFosterObjects = finalFosterObjects.OrderBy(fo => fo.ClientID);
-                    break;
-                case "clientId_desc":
-                    finalFosterObjects = finalFosterObjects.OrderByDescending(fo => fo.ClientID);
-                    break;
-                case "petId_asc":
-                    finalFosterObjects = finalFosterObjects.OrderBy(fo => fo.PetID);
-                    break;
-                case "petId_desc":
-                    finalFosterObjects = finalFosterObjects.OrderByDescending(fo => fo.PetID);
-                    break;
-                default:
-                    finalFosterObjects = finalFosterObjects.OrderBy(fo => fo.Id);
-                    break;
-            }
-        }
-
         if (string.IsNullOrEmpty(sortOrder) || !sortOrder.StartsWith("id_"))
         {
             ViewData["NextIdSort"] = "id_asc";
@@ -196,36 +154,32 @@ public class FosterController : Controller
 
         // Paging
         ViewData["CrtPage"] = pageNumber;
-        return View(await PaginatedList<Foster>.CreateAsyncList(finalFosterObjects.AsNoTracking(), pageNumber, pageSize));
+        return View(finalFosterObjects);
     }
 
     // GET: foster/{id}
     [Route("{id}")]
-    public async Task<IActionResult> Details(int? id)
+    public async Task<IActionResult> Details(int id)
     {
-        if (id == null)
+        var foster = await _fosterService.GetFoster(id);
+        if (foster == null)
         {
             return NotFound();
         }
 
-        var fosterModel = await _context.Fosters
-            .Include(f => f.Pet)
-            .Include(f => f.Client)
-            .FirstOrDefaultAsync(m => m.Id == id);
-        if (fosterModel == null)
-        {
-            return NotFound();
-        }
-
-        return View(fosterModel);
+        return View(foster);
     }
 
     // GET: foster/create
     [Route("create")]
-    public IActionResult Create()
+    public async Task<IActionResult> Create()
     {
-        ViewData["PetID"] = new SelectList(_context.Pets, "Id", "Name");
-        ViewData["ClientID"] = new SelectList(_context.Clients, "Id", "Name");
+        var allPets = await _petService.GetAllPets();
+        var allClients = await _clientService.GetAllClients();
+
+        ViewData["PetID"] = new SelectList(allPets, "Id", "Name");
+        ViewData["ClientID"] = new SelectList(allClients, "Id", "Name");
+
         return View();
     }
 
@@ -233,102 +187,96 @@ public class FosterController : Controller
     [Route("create")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Id,ClientID,PetID,Description,StartDate,EndDate")] Foster fosterModel)
+    public async Task<IActionResult> Create([Bind("Id,ClientID,PetID,Description,StartDate,EndDate")] Foster foster)
     {
-        ViewData["PetID"] = new SelectList(_context.Pets, "Id", "Name", fosterModel.PetID);
-        ViewData["ClientID"] = new SelectList(_context.Clients, "Id", "Name", fosterModel.ClientID);
+        var allPets = await _petService.GetAllPets();
+        var allClients = await _clientService.GetAllClients();
 
-        await ValidateFosterDates(fosterModel);
+        ViewData["PetID"] = new SelectList(allPets, "Id", "Name", foster.PetID);
+        ViewData["ClientID"] = new SelectList(allClients, "Id", "Name", foster.ClientID);
+
+        await ValidateFosterDates(foster);
 
         if (ModelState.IsValid)
         {
-            _context.Add(fosterModel);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+            var createdFoster = await _fosterService.CreateFoster(foster);
+            if (createdFoster != null)
+            {
+                return RedirectToAction(nameof(Index));
+            }
+            else
+            {
+                return View(foster);
+            }
         }
-        return View(fosterModel);
+        return View(foster);
     }
 
     // GET: foster/edit/{id}
     [Route("edit/{id}")]
-    public async Task<IActionResult> Edit(int? id)
+    public async Task<IActionResult> Edit(int id)
     {
-        if (id == null)
+        var foster = await _fosterService.GetFoster(id);
+        if (foster == null)
         {
             return NotFound();
         }
 
-        var fosterModel = await _context.Fosters.FindAsync(id);
-        if (fosterModel == null)
-        {
-            return NotFound();
-        }
+        var allPets = await _petService.GetAllPets();
+        var allClients = await _clientService.GetAllClients();
+    
+        ViewData["PetID"] = new SelectList(allPets, "Id", "Name", foster.PetID);
+        ViewData["ClientID"] = new SelectList(allClients, "Id", "Name", foster.ClientID);
 
-        ViewData["PetID"] = new SelectList(_context.Pets, "Id", "Name", fosterModel.PetID);
-        ViewData["ClientID"] = new SelectList(_context.Clients, "Id", "Name", fosterModel.ClientID);
-
-        return View(fosterModel);
+        return View(foster);
     }
 
     // POST: foster/edit/{id}
     [Route("edit/{id}")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, [Bind("Id,ClientID,PetID,Description,StartDate,EndDate")] Foster fosterModel)
+    public async Task<IActionResult> Edit(int id, [Bind("Id,ClientID,PetID,Description,StartDate,EndDate")] Foster foster)
     {
-        if (id != fosterModel.Id)
+        if (id != foster.Id)
         {
             return NotFound();
         }
 
-        await ValidateFosterDates(fosterModel);
+        await ValidateFosterDates(foster);
 
         if (ModelState.IsValid)
         {
-            try
+            var editedFoster = await _fosterService.EditFoster(foster);
+            if (editedFoster != null)
             {
-                _context.Update(fosterModel);
-                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(Index));
             }
-            catch (DbUpdateConcurrencyException)
+            else
             {
-                if (!FosterModelExists(fosterModel.Id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                return View(foster);
             }
-            return RedirectToAction(nameof(Index));
         }
 
-        ViewData["PetID"] = new SelectList(_context.Pets, "Id", "Name", fosterModel.PetID);
-        ViewData["ClientID"] = new SelectList(_context.Clients, "Id", "Name", fosterModel.ClientID);
+        var allPets = await _petService.GetAllPets();
+        var allClients = await _clientService.GetAllClients();
 
-        return View(fosterModel);
+        ViewData["PetID"] = new SelectList(allPets, "Id", "Name", foster.PetID);
+        ViewData["ClientID"] = new SelectList(allClients, "Id", "Name", foster.ClientID);
+
+        return View(foster);
     }
 
     // GET: foster/delete/{id}
     [Route("delete/{id}")]
-    public async Task<IActionResult> Delete(int? id)
+    public async Task<IActionResult> Delete(int id)
     {
-        if (id == null)
+        var foster = await _fosterService.GetFoster(id);
+        if (foster == null)
         {
             return NotFound();
         }
 
-        var fosterModel = await _context.Fosters
-            .Include(f => f.Pet)
-            .Include(f => f.Client)
-            .FirstOrDefaultAsync(m => m.Id == id);
-        if (fosterModel == null)
-        {
-            return NotFound();
-        }
-
-        return View(fosterModel);
+        return View(foster);
     }
 
     // POST: foster/delete/{id}
@@ -337,18 +285,7 @@ public class FosterController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
-        var fosterModel = await _context.Fosters.FindAsync(id);
-        if (fosterModel != null)
-        {
-            _context.Fosters.Remove(fosterModel);
-        }
-
-        await _context.SaveChangesAsync();
+        await _fosterService.DeleteFoster(id);
         return RedirectToAction(nameof(Index));
-    }
-
-    private bool FosterModelExists(int id)
-    {
-        return _context.Fosters.Any(e => e.Id == id);
     }
 }

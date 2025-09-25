@@ -1,13 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
 
-using PetRescue.Data;
 using PetRescue.Models;
-using PetRescue.Utilities;
+using PetRescue.Services;
 
 
 namespace PetRescue.Controllers;
@@ -16,13 +13,11 @@ namespace PetRescue.Controllers;
 [Route("admin/users")]
 public class UsersController : Controller
 {
-    private readonly PetRescueContext _context;
-    private readonly UserManager<User> _userManager;
+    private readonly UserService _userService;
 
-    public UsersController(PetRescueContext context, UserManager<User> userManager)
+    public UsersController(UserService userService)
     {
-        _context = context;
-        _userManager = userManager;
+        _userService = userService;
     }
 
     // GET: users
@@ -30,55 +25,19 @@ public class UsersController : Controller
     public async Task<IActionResult> Index(string searchString, UserRole? userRole, string sortOrder,
                                            int pageSize = 6, int pageNumber = 1)
     {
-        var finalUserObjects = from u in _context.Users select u;
+        var finalUserObjects = await _userService.QueryUsers(searchString, userRole, sortOrder, pageSize, pageNumber);
 
         // Searching
         ViewData["SearchString"] = searchString;
-        if (!string.IsNullOrEmpty(searchString))
-        {
-            var upperSearchString = searchString.ToUpper();
-            finalUserObjects = finalUserObjects.Where(u =>
-                u.Email!.ToUpper().Contains(upperSearchString) ||
-                u.Name!.ToUpper().Contains(upperSearchString));
-        }
 
         // Filtering
         ViewData["UserRoleOptions"] = new SelectList(new List<UserRole> { UserRole.ADMIN, UserRole.USER });
         if (userRole != null)
         {
-            finalUserObjects = finalUserObjects.Where(u => u.Role == userRole);
             ViewData["UserRoleFilter"] = userRole;
         }
 
         // Ordering
-        if (!string.IsNullOrEmpty(sortOrder))
-        {
-            switch (sortOrder)
-            {
-                case "email_asc":
-                    finalUserObjects = finalUserObjects.OrderBy(u => u.Email);
-                    break;
-                case "email_desc":
-                    finalUserObjects = finalUserObjects.OrderByDescending(u => u.Email);
-                    break;
-                case "name_asc":
-                    finalUserObjects = finalUserObjects.OrderBy(u => u.Name);
-                    break;
-                case "name_desc":
-                    finalUserObjects = finalUserObjects.OrderByDescending(u => u.Name);
-                    break;
-                case "role_asc":
-                    finalUserObjects = finalUserObjects.OrderBy(u => u.Role);
-                    break;
-                case "role_desc":
-                    finalUserObjects = finalUserObjects.OrderByDescending(u => u.Role);
-                    break;
-                default:
-                    finalUserObjects = finalUserObjects.OrderBy(u => u.Email);
-                    break;
-            }
-        }
-
         if (string.IsNullOrEmpty(sortOrder) || !sortOrder.StartsWith("email_"))
         {
             ViewData["NextEmailSort"] = "email_asc";
@@ -110,26 +69,25 @@ public class UsersController : Controller
 
         // Paging
         ViewData["CrtPage"] = pageNumber;
-        return View(await PaginatedList<User>.CreateAsyncList(finalUserObjects.AsNoTracking(), pageNumber, pageSize));
+        return View(finalUserObjects);
     }
 
     // GET: users/{id}
     [Route("{id}")]
-    public async Task<IActionResult> Details(string? id)
+    public async Task<IActionResult> Details(string id)
     {
         if (id == null)
         {
             return NotFound();
         }
 
-        var usersModel = await _context.Users
-            .FirstOrDefaultAsync(m => m.Id == id);
-        if (usersModel == null)
+        var user = await _userService.GetUser(id);
+        if (user == null)
         {
             return NotFound();
         }
 
-        return View(usersModel);
+        return View(user);
     }
 
     // GET: users/create
@@ -143,23 +101,22 @@ public class UsersController : Controller
     [Route("create")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Id,Email,Role,Name")] User usersModel)
+    public async Task<IActionResult> Create([Bind("Id,Email,Role,Name")] User user)
     {
         if (ModelState.IsValid)
         {
-            usersModel.UserName = usersModel.Email;
-
-            var createResult = await _userManager.CreateAsync(usersModel);
-            if (createResult.Succeeded)
+            user.UserName = user.Email;
+            var createdUser = await _userService.CreateUser(user);
+            if (createdUser != null)
             {
                 return RedirectToAction(nameof(Index));
             }
             else
             {
-                return View(usersModel);
+                return View(user);
             }
         }
-        return View(usersModel);
+        return View(user);
     }
 
     // GET: users/edit/{id}
@@ -171,88 +128,64 @@ public class UsersController : Controller
             return NotFound();
         }
 
-        var usersModel = await _context.Users.FindAsync(id);
-        if (usersModel == null)
+        var user = await _userService.GetUser(id);
+        if (user == null)
         {
             return NotFound();
         }
-        return View(usersModel);
+        return View(user);
     }
 
     // POST: users/edit/{id}
     [Route("edit/{id}")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(string id, [Bind("Id,Email,Role,Name")] User usersModel)
+    public async Task<IActionResult> Edit(string id, [Bind("Id,Email,Role,Name")] User user)
     {
-        if (id != usersModel.Id)
+        if (id != user.Id)
         {
             return NotFound();
         }
 
         bool emailValid = (ModelState["Email"] is not null) && (ModelState["Email"]?.ValidationState == ModelValidationState.Valid);
-        bool roleValid = (ModelState["Role"] is not null) && (ModelState["Role"]?.ValidationState == ModelValidationState.Valid);
-        bool nameValid = (ModelState["Name"] is not null) && (ModelState["Name"]?.ValidationState == ModelValidationState.Valid);
+        bool roleValid  = (ModelState["Role"] is not null) && (ModelState["Role"]?.ValidationState == ModelValidationState.Valid);
+        bool nameValid  = (ModelState["Name"] is not null) && (ModelState["Name"]?.ValidationState == ModelValidationState.Valid);
 
         if (emailValid && roleValid && nameValid)
         {
-            try
+            var editedUser = await _userService.EditUser(user);
+            if (editedUser != null)
             {
-                _context.Attach(usersModel);
-                _context.Entry(usersModel).Property("Email").IsModified = true;
-                _context.Entry(usersModel).Property("Role").IsModified = true;
-                _context.Entry(usersModel).Property("Name").IsModified = true;
-                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(Index));
             }
-            catch (DbUpdateConcurrencyException)
+            else
             {
-                if (!UsersModelExists(usersModel.Id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                return View(user);
             }
-            return RedirectToAction(nameof(Index));
         }
-        return View(usersModel);
+        return View(user);
     }
 
     // POST: users/edit/{id}/forgot_password
     [Route("edit/{id}/forgot_password")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ForgotPassword(string id, [Bind("Id,Email,Role,Name")] User usersModel)
+    public async Task<IActionResult> ForgotPassword(string id, [Bind("Id,Email,Role,Name")] User user)
     {
-        if (id != usersModel.Id)
+        if (id != user.Id)
         {
             return NotFound();
         }
 
-        try
+        var editedUser = await _userService.ForgotPassword(user);
+        if (editedUser != null)
         {
-            await _userManager.RemovePasswordAsync(usersModel);
-            string resetToken = await _userManager.GeneratePasswordResetTokenAsync(usersModel);
-            // Send an email with this token to the user
-            Console.WriteLine("Password Reset Token");
-            Console.WriteLine(resetToken);
-
-            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
         }
-        catch (DbUpdateConcurrencyException)
+        else
         {
-            if (!UsersModelExists(usersModel.Id))
-            {
-                return NotFound();
-            }
-            else
-            {
-                throw;
-            }
+            return View(user);
         }
-        return RedirectToAction(nameof(Index));
     }
 
     // GET: users/delete/{id}
@@ -264,14 +197,13 @@ public class UsersController : Controller
             return NotFound();
         }
 
-        var usersModel = await _context.Users
-            .FirstOrDefaultAsync(m => m.Id == id);
-        if (usersModel == null)
+        var user = await _userService.GetUser(id);
+        if (user == null)
         {
             return NotFound();
         }
 
-        return View(usersModel);
+        return View(user);
     }
 
     // POST: users/delete/{id}
@@ -280,18 +212,7 @@ public class UsersController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(string id)
     {
-        var usersModel = await _context.Users.FindAsync(id);
-        if (usersModel != null)
-        {
-            _context.Users.Remove(usersModel);
-        }
-
-        await _context.SaveChangesAsync();
+        await _userService.DeleteUser(id);
         return RedirectToAction(nameof(Index));
-    }
-
-    private bool UsersModelExists(string id)
-    {
-        return _context.Users.Any(e => e.Id == id);
     }
 }

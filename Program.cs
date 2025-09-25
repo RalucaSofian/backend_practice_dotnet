@@ -1,11 +1,18 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+
 using PetRescue.Data;
+using PetRescue.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<PetRescueContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("PetRescueContext") ?? throw new InvalidOperationException("Connection string 'PetRescueContext' not found.")));
+
+builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<ClientService>();
+builder.Services.AddScoped<PetService>();
+builder.Services.AddScoped<FosterService>();
 
 builder.Services.AddIdentity<PetRescue.Models.User, IdentityRole>( options => options.SignIn.RequireConfirmedAccount = false)
     .AddDefaultTokenProviders()

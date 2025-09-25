@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 using PetRescue.Data;
 using PetRescue.Models;
+using PetRescue.Services;
 using PetRescue.Utilities;
 
 
@@ -14,11 +15,18 @@ namespace PetRescue.Controllers;
 [Route("admin/pets")]
 public class PetsController : Controller
 {
-    private readonly PetRescueContext _context;
+    // private readonly PetRescueContext _context;
 
-    public PetsController(PetRescueContext context)
+    // public PetsController(PetRescueContext context)
+    // {
+    //     _context = context;
+    // }
+
+    private readonly PetService _petService;
+
+    public PetsController(PetService petService)
     {
-        _context = context;
+        _petService = petService;
     }
 
     // GET: pets
@@ -27,18 +35,11 @@ public class PetsController : Controller
                                            AnimalGender? animalGender, int? age_gte, int? age_lte,
                                            string sortOrder, int pageSize = 6, int pageNumber = 1)
     {
-        var finalPetObjects = from p in _context.Pets select p;
+        var finalPetObjects = await _petService.QueryPets(searchString, animalSpecies, animalGender,
+                                age_gte, age_lte, sortOrder, pageSize, pageNumber);
 
         // Searching
         ViewData["SearchString"] = searchString;
-        if (!string.IsNullOrEmpty(searchString))
-        {
-            var upperSearchString = searchString.ToUpper();
-            finalPetObjects = finalPetObjects.Where(p =>
-                p.Name.ToUpper().Contains(upperSearchString) ||
-                p.Species.ToString().ToUpper().Contains(upperSearchString) ||
-                p.Description!.ToUpper().Contains(upperSearchString));
-        }
 
         // Filtering
         ViewData["SpeciesOptions"] = new SelectList(new List<AnimalSpecies> {AnimalSpecies.Bird, AnimalSpecies.Cat, AnimalSpecies.Dog, AnimalSpecies.Lizard,
@@ -48,69 +49,25 @@ public class PetsController : Controller
 
         if (animalSpecies != null)
         {
-            finalPetObjects = finalPetObjects.Where(p => p.Species == animalSpecies);
             ViewData["SpeciesFilter"] = animalSpecies;
         }
 
         if (animalGender != null)
         {
-            finalPetObjects = finalPetObjects.Where(p => p.Gender == animalGender);
             ViewData["GenderFilter"] = animalGender;
         }
 
         if (age_gte != null)
         {
-            finalPetObjects = finalPetObjects.Where(p => p.Age >= age_gte);
             ViewData["AgeGteFilter"] = age_gte;
         }
 
         if (age_lte != null)
         {
-            finalPetObjects = finalPetObjects.Where(p => p.Age <= age_lte);
             ViewData["AgeLteFilter"] = age_lte;
         }
 
         // Ordering
-        if (!string.IsNullOrEmpty(sortOrder))
-        {
-            switch (sortOrder)
-            {
-                case "id_asc":
-                    finalPetObjects = finalPetObjects.OrderBy(p => p.Id);
-                    break;
-                case "id_desc":
-                    finalPetObjects = finalPetObjects.OrderByDescending(p => p.Id);
-                    break;
-                case "name_asc":
-                    finalPetObjects = finalPetObjects.OrderBy(p => p.Name);
-                    break;
-                case "name_desc":
-                    finalPetObjects = finalPetObjects.OrderByDescending(p => p.Name);
-                    break;
-                case "species_asc":
-                    finalPetObjects = finalPetObjects.OrderBy(p => p.Species);
-                    break;
-                case "species_desc":
-                    finalPetObjects = finalPetObjects.OrderByDescending(p => p.Species);
-                    break;
-                case "gender_asc":
-                    finalPetObjects = finalPetObjects.OrderBy(p => p.Gender);
-                    break;
-                case "gender_desc":
-                    finalPetObjects = finalPetObjects.OrderByDescending(p => p.Gender);
-                    break;
-                case "age_asc":
-                    finalPetObjects = finalPetObjects.OrderBy(p => p.Age);
-                    break;
-                case "age_desc":
-                    finalPetObjects = finalPetObjects.OrderByDescending(p => p.Age);
-                    break;
-                default:
-                    finalPetObjects = finalPetObjects.OrderBy(p => p.Id);
-                    break;
-            }
-        }
-
         if (string.IsNullOrEmpty(sortOrder) || !sortOrder.StartsWith("id_"))
         {
             ViewData["NextIdSort"] = "id_asc";
@@ -160,26 +117,20 @@ public class PetsController : Controller
 
         // Paging
         ViewData["CrtPage"] = pageNumber;
-        return View(await PaginatedList<Pet>.CreateAsyncList(finalPetObjects.AsNoTracking(), pageNumber, pageSize));
+        return View(finalPetObjects);
     }
 
     // GET: pets/id
     [Route("{id}")]
-    public async Task<IActionResult> Details(int? id)
+    public async Task<IActionResult> Details(int id)
     {
-        if (id == null)
+        var pet = await _petService.GetPet(id);
+        if (pet == null)
         {
             return NotFound();
         }
 
-        var petsModel = await _context.Pets
-            .FirstOrDefaultAsync(m => m.Id == id);
-        if (petsModel == null)
-        {
-            return NotFound();
-        }
-
-        return View(petsModel);
+        return View(pet);
     }
 
     // GET: pets/create
@@ -193,85 +144,72 @@ public class PetsController : Controller
     [Route("create")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Id,Name,Species,Gender,Age,Description")] Pet petsModel)
+    public async Task<IActionResult> Create([Bind("Id,Name,Species,Gender,Age,Description")] Pet pet)
     {
         if (ModelState.IsValid)
         {
-            _context.Add(petsModel);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+            var createdPet = await _petService.CreatePet(pet);
+            if (createdPet != null)
+            {
+                return RedirectToAction(nameof(Index));
+            }
+            else
+            {
+                return View(pet);
+            }
         }
-        return View(petsModel);
+        return View(pet);
     }
 
     // GET: pets/edit/{id}
     [Route("edit/{id}")]
-    public async Task<IActionResult> Edit(int? id)
+    public async Task<IActionResult> Edit(int id)
     {
-        if (id == null)
+        var pet = await _petService.GetPet(id);
+        if (pet == null)
         {
             return NotFound();
         }
-
-        var petsModel = await _context.Pets.FindAsync(id);
-        if (petsModel == null)
-        {
-            return NotFound();
-        }
-        return View(petsModel);
+        return View(pet);
     }
 
     // POST: pets/edit/{id}
     [Route("edit/{id}")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Species,Gender,Age,Description")] Pet petsModel)
+    public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Species,Gender,Age,Description")] Pet pet)
     {
-        if (id != petsModel.Id)
+        if (id != pet.Id)
         {
             return NotFound();
         }
 
         if (ModelState.IsValid)
         {
-            try
+            var editedPet = await _petService.EditPet(pet);
+            if (editedPet != null)
             {
-                _context.Update(petsModel);
-                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(Index));
             }
-            catch (DbUpdateConcurrencyException)
+            else
             {
-                if (!PetsModelExists(petsModel.Id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                return View(pet);
             }
-            return RedirectToAction(nameof(Index));
         }
-        return View(petsModel);
+        return View(pet);
     }
 
     // GET: Pets/Delete/5
     [Route("delete/{id}")]
-    public async Task<IActionResult> Delete(int? id)
+    public async Task<IActionResult> Delete(int id)
     {
-        if (id == null)
+        var pet = await _petService.GetPet(id);
+        if (pet == null)
         {
             return NotFound();
         }
 
-        var petsModel = await _context.Pets
-            .FirstOrDefaultAsync(m => m.Id == id);
-        if (petsModel == null)
-        {
-            return NotFound();
-        }
-
-        return View(petsModel);
+        return View(pet);
     }
 
     // POST: pets/delete/{id}
@@ -280,18 +218,7 @@ public class PetsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
-        var petsModel = await _context.Pets.FindAsync(id);
-        if (petsModel != null)
-        {
-            _context.Pets.Remove(petsModel);
-        }
-
-        await _context.SaveChangesAsync();
+        await _petService.DeletePet(id);
         return RedirectToAction(nameof(Index));
-    }
-
-    private bool PetsModelExists(int id)
-    {
-        return _context.Pets.Any(e => e.Id == id);
     }
 }
