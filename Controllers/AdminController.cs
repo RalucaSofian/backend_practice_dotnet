@@ -3,8 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
+
 using PetRescue.Models;
 using PetRescue.ViewModels;
 
@@ -182,7 +181,7 @@ public class AdminController : Controller
     [AllowAnonymous]
     public IActionResult ResetPassword(string resetCode)
     {
-        if (resetCode == "")
+        if (resetCode == string.Empty)
         {
             _logger.LogError("[AdminController] Incorrect Password Reset Code");
             ModelState.AddModelError(string.Empty, "Incorrect Reset Code");

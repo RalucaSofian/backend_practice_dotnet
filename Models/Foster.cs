@@ -18,8 +18,8 @@ public class Foster : IValidatableObject
 
     public DateOnly? EndDate { get; set; }
 
-    public virtual Client? Client { get; set; } = null!;
-    public virtual Pet? Pet { get; set; } = null!;
+    public virtual Client? Client { get; set; } = default!;
+    public virtual Pet? Pet { get; set; } = default!;
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {

@@ -14,6 +14,8 @@ public class Pet
     [Range(0, 30)]
     public int? Age { get; set; }
     public string? Description { get; set; }
+
+    public virtual ICollection<Foster> Fosters { get; set; } = new List<Foster>();
 }
 
 public enum AnimalGender { M, F }

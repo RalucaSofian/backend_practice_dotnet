@@ -1,13 +1,9 @@
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
 
-using PetRescue.Data;
 using PetRescue.Models;
 using PetRescue.Services;
-using PetRescue.Utilities;
 
 
 namespace PetRescue.Controllers;
@@ -27,10 +23,20 @@ public class ClientController : Controller
 
     // GET: clients
     [Route("")]
-    public async Task<IActionResult> Index(string searchString, bool? hasUser, string sortOrder,
-                                            int pageSize = 6, int pageNumber = 1)
+    public async Task<IActionResult> Index(string searchString, bool? hasUser,
+                                           string? userId, string sortOrder,
+                                           int pageSize = 6, int pageNumber = 1)
     {
-        var finalClientObjects = await _clientService.QueryClients(searchString, hasUser, sortOrder, pageSize, pageNumber);
+        var queryOptions = new ClientService.QueryOptions
+        {
+            SearchString = string.IsNullOrEmpty(searchString) ? null : searchString,
+            SortOrder = string.IsNullOrEmpty(sortOrder) ? null : sortOrder,
+            HasUser = hasUser is null ? null : hasUser,
+            UserId = string.IsNullOrEmpty(userId) ? null : userId,
+            PageSize = pageSize,
+            PageNumber = pageNumber
+        };
+        var finalClientObjects = await _clientService.QueryClients(queryOptions);
 
         // Searching
         ViewData["SearchString"] = searchString;
@@ -39,7 +45,15 @@ public class ClientController : Controller
         ViewData["HasUserOptions"] = new SelectList(new List<bool> { true, false });
         if (hasUser != null)
         {
-            ViewData["UserFilter"] = hasUser;
+            ViewData["UserSetFilter"] = hasUser;
+        }
+
+        var allUsers = await _userService.GetAllUsers();
+        ViewData["UserEmailOptions"] = new SelectList(allUsers, "Id", "Email");
+
+        if (!string.IsNullOrEmpty(userId))
+        {
+            ViewData["UserMailFilter"] = userId;
         }
 
         // Ordering

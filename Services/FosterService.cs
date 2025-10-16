@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+
 using PetRescue.Data;
 using PetRescue.Models;
 using PetRescue.Utilities;
@@ -8,6 +9,21 @@ namespace PetRescue.Services;
 
 public class FosterService
 {
+    public class QueryOptions
+    {
+        public string? SearchString = null;
+        public string? SortOrder = null;
+        public DateOnly? StartDate_GTE = null;
+        public DateOnly? StartDate_LT = null;
+        public DateOnly? EndDate_GTE = null;
+        public DateOnly? EndDate_LT = null;
+        public int? ClientId = null;
+        public int? PetId = null;
+        public int PageSize = 6;
+        public int PageNumber = 1;
+    }
+
+
     private readonly PetRescueContext _context;
 
     public FosterService(PetRescueContext context)
@@ -15,19 +31,16 @@ public class FosterService
         _context = context;
     }
 
-    public async Task<PaginatedList<Foster>> QueryFoster(string searchString, string sortOrder,
-                                           DateOnly startDate_gte, DateOnly startDate_lt,
-                                           DateOnly endDate_gte, DateOnly endDate_lt,
-                                           int clientId, int petId,
-                                           int pageSize = 6, int pageNumber = 1)
+
+    public async Task<PaginatedList<Foster>> QueryFoster(QueryOptions queryOptions)
     {
         var fosterObjects = _context.Fosters.Include(f => f.Pet).Include(f => f.Client);
         IQueryable<Foster> finalFosterObjects = from fo in fosterObjects select fo;
 
         // Searching
-        if (!string.IsNullOrEmpty(searchString))
+        if (!string.IsNullOrEmpty(queryOptions.SearchString))
         {
-            var upperSearchString = searchString.ToUpper();
+            var upperSearchString = queryOptions.SearchString.ToUpper();
             finalFosterObjects = finalFosterObjects.Where(s =>
                 s.Description!.ToUpper().Contains(upperSearchString) ||
                 s.Client!.Name.ToUpper().Contains(upperSearchString) ||
@@ -35,40 +48,40 @@ public class FosterService
         }
 
         // Filtering
-        if (startDate_gte != DateOnly.MinValue)
+        if (queryOptions.StartDate_GTE != null)
         {
-            finalFosterObjects = finalFosterObjects.Where(fo => fo.StartDate >= startDate_gte);
+            finalFosterObjects = finalFosterObjects.Where(fo => fo.StartDate >= queryOptions.StartDate_GTE);
         }
 
-        if (startDate_lt != DateOnly.MinValue)
+        if (queryOptions.StartDate_LT != null)
         {
-            finalFosterObjects = finalFosterObjects.Where(fo => fo.StartDate < startDate_lt);
+            finalFosterObjects = finalFosterObjects.Where(fo => fo.StartDate < queryOptions.StartDate_LT);
         }
 
-        if (endDate_gte != DateOnly.MinValue)
+        if (queryOptions.EndDate_GTE != null)
         {
-            finalFosterObjects = finalFosterObjects.Where(fo => fo.EndDate >= endDate_gte);
+            finalFosterObjects = finalFosterObjects.Where(fo => fo.EndDate >= queryOptions.EndDate_GTE);
         }
 
-        if (endDate_lt != DateOnly.MinValue)
+        if (queryOptions.EndDate_LT != null)
         {
-            finalFosterObjects = finalFosterObjects.Where(fo => fo.EndDate < endDate_lt);
+            finalFosterObjects = finalFosterObjects.Where(fo => fo.EndDate < queryOptions.EndDate_LT);
         }
 
-        if (clientId != 0)
+        if (queryOptions.ClientId != null)
         {
-            finalFosterObjects = finalFosterObjects.Where(fo => fo.Client!.Id == clientId);
+            finalFosterObjects = finalFosterObjects.Where(fo => fo.Client!.Id == queryOptions.ClientId);
         }
 
-        if (petId != 0)
+        if (queryOptions.PetId != null)
         {
-            finalFosterObjects = finalFosterObjects.Where(fo => fo.Pet!.Id == petId);
+            finalFosterObjects = finalFosterObjects.Where(fo => fo.Pet!.Id == queryOptions.PetId);
         }
 
         // Ordering
-        if (!string.IsNullOrEmpty(sortOrder))
+        if (!string.IsNullOrEmpty(queryOptions.SortOrder))
         {
-            switch (sortOrder)
+            switch (queryOptions.SortOrder)
             {
                 case "id_asc":
                     finalFosterObjects = finalFosterObjects.OrderBy(fo => fo.Id);
@@ -105,8 +118,13 @@ public class FosterService
                     break;
             }
         }
+        else
+        {
+            finalFosterObjects = finalFosterObjects.OrderBy(fo => fo.Id);
+        }
 
-        return await PaginatedList<Foster>.CreateAsyncList(finalFosterObjects.AsNoTracking(), pageNumber, pageSize);
+        return await PaginatedList<Foster>.CreateAsyncList(finalFosterObjects.AsNoTracking(),
+            queryOptions.PageNumber, queryOptions.PageSize);
     }
 
     public async Task<List<Foster>> GetAllFoster()
@@ -127,10 +145,8 @@ public class FosterService
         {
             return null;
         }
-        else
-        {
-            return foster;
-        }
+
+        return foster;
     }
 
     public async Task<Foster?> CreateFoster(Foster foster)
@@ -143,10 +159,8 @@ public class FosterService
         {
             return null;
         }
-        else
-        {
-            return createdFoster;
-        }
+
+        return createdFoster;
     }
 
     public async Task<Foster?> EditFoster(Foster foster)

@@ -19,15 +19,7 @@ public class UserService
         _userManager = userManager;
     }
 
-    /// <summary>
-    /// Function used to apply Search, Filtering, Sorting and Pagination
-    /// </summary>
-    /// <param name="searchString">Search string</param>
-    /// <param name="userRole">User Role filter parameter</param>
-    /// <param name="sortOrder">Sort order</param>
-    /// <param name="pageSize">Page size</param>
-    /// <param name="pageNumber">Page number</param>
-    /// <returns>List of Paginated Users</returns>
+
     public async Task<PaginatedList<User>> QueryUsers(string searchString, UserRole? userRole, string sortOrder,
                               int pageSize = 6, int pageNumber = 1)
     {
@@ -76,15 +68,14 @@ public class UserService
                     break;
             }
         }
+        else
+        {
+            finalUserObjects = finalUserObjects.OrderBy(u => u.Id);
+        }
 
         return await PaginatedList<User>.CreateAsyncList(finalUserObjects.AsNoTracking(), pageNumber, pageSize);
     }
 
-    /// <summary>
-    /// Function used to retrieve an User from the DB, based on its ID
-    /// </summary>
-    /// <param name="id">ID of User to retrieve</param>
-    /// <returns>User, or null in case of error</returns>
     public async Task<User?> GetUser(string id)
     {
         var user = await _context.Users.FirstOrDefaultAsync(m => m.Id == id);
@@ -92,26 +83,15 @@ public class UserService
         {
             return null;
         }
-        else
-        {
-            return user;
-        }
+
+        return user;
     }
 
-    /// <summary>
-    /// Function used to get a list of All Users in the DB
-    /// </summary>
-    /// <returns>List of all users</returns>
     public async Task<List<User>> GetAllUsers()
     {
         return await _context.Users.ToListAsync();
     }
 
-    /// <summary>
-    /// Function used to create a new User in the DB
-    /// </summary>
-    /// <param name="user">User to be created</param>
-    /// <returns>Created User, or null in case of error</returns>
     public async Task<User?> CreateUser(User user)
     {
         var createResult = await _userManager.CreateAsync(user);
@@ -126,11 +106,6 @@ public class UserService
         }
     }
 
-    /// <summary>
-    /// Function used to edit an User's properties
-    /// </summary>
-    /// <param name="user">User to be edited</param>
-    /// <returns>Edited User, or null in case of error</returns>
     public async Task<User?> EditUser(User user)
     {
         try
@@ -150,15 +125,10 @@ public class UserService
             }
         }
 
-        var editedUser = await _userManager.FindByEmailAsync(user.Email!);
+        var editedUser = await _userManager.FindByIdAsync(user.Id);
         return editedUser;
     }
 
-    /// <summary>
-    /// Function used to Delete an User from the DB
-    /// </summary>
-    /// <param name="id">ID of User to be deleted</param>
-    /// <returns>-</returns>
     public async Task DeleteUser(string id)
     {
         var user = await _context.Users.FindAsync(id);
@@ -169,12 +139,6 @@ public class UserService
         await _context.SaveChangesAsync();
     }
 
-    /// <summary>
-    /// Function used for the 'Forgot password' functionality.
-    /// The function removes the old password and generates a password reset token
-    /// </summary>
-    /// <param name="user"></param>
-    /// <returns>User for which the password was reset, or null in case of error</returns>
     public async Task<User?> ForgotPassword(User user)
     {
         try

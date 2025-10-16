@@ -9,6 +9,16 @@ namespace PetRescue.Services;
 
 public class ClientService
 {
+    public class QueryOptions
+    {
+        public string? SearchString = null;
+        public string? SortOrder = null;
+        public bool? HasUser = null;
+        public string? UserId = null;
+        public int PageSize = 6;
+        public int PageNumber = 1;
+    }
+
     private readonly PetRescueContext _context;
 
     public ClientService(PetRescueContext context)
@@ -16,16 +26,15 @@ public class ClientService
         _context = context;
     }
 
-    public async Task<PaginatedList<Client>> QueryClients(string searchString, bool? hasUser, string sortOrder,
-                                            int pageSize = 6, int pageNumber = 1)
+    public async Task<PaginatedList<Client>> QueryClients(QueryOptions queryOptions)
     {
-        IQueryable<Client> finalClientObjects = _context.Clients.Include(c => c.User);
+        IQueryable<Client> finalClientObjects = _context.Clients.Include(c => c.User).Where(c => c.Id != 0);
 
         // Searching
-        if (!string.IsNullOrEmpty(searchString))
+        if (!string.IsNullOrEmpty(queryOptions.SearchString))
         {
-            var upperSearchString = searchString.ToUpper();
-            var couldParse = int.TryParse(searchString, out int numValue);
+            var upperSearchString = queryOptions.SearchString.ToUpper();
+            var couldParse = int.TryParse(queryOptions.SearchString, out int numValue);
 
             finalClientObjects = finalClientObjects.Where(s =>
                 s.Name.ToUpper().Contains(upperSearchString) ||
@@ -37,9 +46,9 @@ public class ClientService
         }
 
         // Filtering
-        if (hasUser != null)
+        if (queryOptions.HasUser != null)
         {
-            if (hasUser == true)
+            if (queryOptions.HasUser == true)
             {
                 finalClientObjects = finalClientObjects.Where(c => c.UserID != null);
             }
@@ -49,10 +58,15 @@ public class ClientService
             }
         }
 
-        // Ordering
-        if (!string.IsNullOrEmpty(sortOrder))
+        if (queryOptions.UserId != null)
         {
-            switch (sortOrder)
+            finalClientObjects = finalClientObjects.Where(fo => fo.User!.Id == queryOptions.UserId);
+        }
+
+        // Ordering
+        if (!string.IsNullOrEmpty(queryOptions.SortOrder))
+        {
+            switch (queryOptions.SortOrder)
             {
                 case "id_asc":
                     finalClientObjects = finalClientObjects.OrderBy(c => c.Id);
@@ -83,8 +97,13 @@ public class ClientService
                     break;
             }
         }
+        else
+        {
+            finalClientObjects = finalClientObjects.OrderBy(c => c.Id);
+        }
 
-        return await PaginatedList<Client>.CreateAsyncList(finalClientObjects.AsNoTracking(), pageNumber, pageSize);
+        return await PaginatedList<Client>.CreateAsyncList(finalClientObjects.AsNoTracking(),
+            queryOptions.PageNumber, queryOptions.PageSize);
     }
 
     public async Task<Client?> GetClient(int id)
@@ -94,15 +113,24 @@ public class ClientService
         {
             return null;
         }
-        else
+
+        return client;
+    }
+
+    public async Task<Client?> GetClientForUserId(string id)
+    {
+        var client = await _context.Clients.FirstAsync(m => m.UserID == id);
+        if (client == null)
         {
-            return client;
+            return null;
         }
+
+        return client;
     }
 
     public async Task<List<Client>> GetAllClients()
     {
-        return await _context.Clients.ToListAsync();
+        return await _context.Clients.Where(c => c.Id != 0).ToListAsync();
     }
 
     public async Task<Client?> CreateClient(Client client)

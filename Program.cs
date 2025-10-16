@@ -1,9 +1,14 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using DotNetEnv;
+using System.Text;
 
 using PetRescue.Data;
 using PetRescue.Services;
 
+
+Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<PetRescueContext>(options =>
@@ -14,7 +19,7 @@ builder.Services.AddScoped<ClientService>();
 builder.Services.AddScoped<PetService>();
 builder.Services.AddScoped<FosterService>();
 
-builder.Services.AddIdentity<PetRescue.Models.User, IdentityRole>( options => options.SignIn.RequireConfirmedAccount = false)
+builder.Services.AddIdentity<PetRescue.Models.User, IdentityRole>(options => options.SignIn.RequireConfirmedAccount = false)
     .AddDefaultTokenProviders()
     .AddEntityFrameworkStores<PetRescueContext>();
 
@@ -46,7 +51,27 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.LoginPath = "/admin/login";
 });
 
+builder.Services.AddAuthentication()
+.AddJwtBearer(options =>
+{
+    options.Authority = "http://localhost:5128";
+    options.RequireHttpsMetadata = false;
+
+    var envSecretKey = Environment.GetEnvironmentVariable("SECRET_KEY");
+    options.TokenValidationParameters = new TokenValidationParameters()
+    {
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF32.GetBytes(envSecretKey!)),
+        ValidateIssuer = false,
+        ValidateAudience = false
+    };
+});
+
 builder.Services.AddControllersWithViews();
+
+builder.Services.AddControllers().AddNewtonsoftJson(options =>
+{
+    options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
+});
 
 
 var app = builder.Build();
@@ -58,6 +83,8 @@ if (!app.Environment.IsDevelopment())
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+
+app.UseCookiePolicy();
 
 app.UseHttpsRedirection();
 app.UseRouting();

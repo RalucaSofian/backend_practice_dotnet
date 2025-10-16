@@ -1,15 +1,10 @@
 using System.Globalization;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.CodeAnalysis.Elfie.Serialization;
-using Microsoft.EntityFrameworkCore;
 
-using PetRescue.Data;
 using PetRescue.Models;
 using PetRescue.Services;
-using PetRescue.Utilities;
 
 
 namespace PetRescue.Controllers;
@@ -61,8 +56,21 @@ public class FosterController : Controller
                                            int clientId, int petId,
                                            int pageSize = 6, int pageNumber = 1)
     {
-        var finalFosterObjects = await _fosterService.QueryFoster(searchString, sortOrder, startDate_gte, startDate_lt,
-                                    endDate_gte, endDate_lt, clientId, petId, pageSize, pageNumber);
+        var queryOptions = new FosterService.QueryOptions
+        {
+            SearchString = string.IsNullOrEmpty(searchString) ? null : searchString,
+            SortOrder = string.IsNullOrEmpty(sortOrder) ? null : sortOrder,
+            StartDate_GTE = startDate_gte == DateOnly.MinValue ? null : startDate_gte,
+            StartDate_LT = startDate_lt == DateOnly.MinValue ? null : startDate_lt,
+            EndDate_GTE = endDate_gte == DateOnly.MinValue ? null : endDate_gte,
+            EndDate_LT = endDate_lt == DateOnly.MinValue ? null : endDate_lt,
+            ClientId = clientId == 0 ? null : clientId,
+            PetId = petId == 0 ? null : petId,
+            PageSize = pageSize,
+            PageNumber = pageNumber
+        };
+
+        var finalFosterObjects = await _fosterService.QueryFoster(queryOptions);
 
         // Searching
         ViewData["SearchString"] = searchString;

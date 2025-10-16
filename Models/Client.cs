@@ -19,4 +19,5 @@ public class Client
     public string? Description { get; set; }
 
     public virtual User? User { get; set; } = null!;
+    public virtual ICollection<Foster> Fosters { get; set; } = new List<Foster>();
 }

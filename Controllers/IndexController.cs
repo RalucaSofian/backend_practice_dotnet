@@ -1,4 +1,4 @@
-// Entry point for the React app (serve built html)
+// Entry point for the Angular app (serve built html)
 using Microsoft.AspNetCore.Mvc;
 
 namespace PetRescue.Controllers;

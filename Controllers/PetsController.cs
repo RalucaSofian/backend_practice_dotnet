@@ -1,12 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
 
-using PetRescue.Data;
 using PetRescue.Models;
 using PetRescue.Services;
-using PetRescue.Utilities;
 
 
 namespace PetRescue.Controllers;
@@ -15,13 +12,6 @@ namespace PetRescue.Controllers;
 [Route("admin/pets")]
 public class PetsController : Controller
 {
-    // private readonly PetRescueContext _context;
-
-    // public PetsController(PetRescueContext context)
-    // {
-    //     _context = context;
-    // }
-
     private readonly PetService _petService;
 
     public PetsController(PetService petService)
@@ -42,8 +32,8 @@ public class PetsController : Controller
         ViewData["SearchString"] = searchString;
 
         // Filtering
-        ViewData["SpeciesOptions"] = new SelectList(new List<AnimalSpecies> {AnimalSpecies.Bird, AnimalSpecies.Cat, AnimalSpecies.Dog, AnimalSpecies.Lizard,
-            AnimalSpecies.Rodent, AnimalSpecies.Snake, AnimalSpecies.Other});
+        ViewData["SpeciesOptions"] = new SelectList(new List<AnimalSpecies> {AnimalSpecies.Bird, AnimalSpecies.Cat,
+            AnimalSpecies.Dog, AnimalSpecies.Lizard, AnimalSpecies.Rodent, AnimalSpecies.Snake, AnimalSpecies.Other});
 
         ViewData["GenderOptions"] = new SelectList(new List<AnimalGender> { AnimalGender.F, AnimalGender.M });
 

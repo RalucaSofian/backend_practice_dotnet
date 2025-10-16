@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+
 using PetRescue.Data;
 using PetRescue.Models;
 using PetRescue.Utilities;
@@ -15,11 +16,12 @@ public class PetService
         _context = context;
     }
 
-    public async Task<PaginatedList<Pet>> QueryPets(string searchString, AnimalSpecies? animalSpecies,
+    public async Task<PaginatedList<Pet>> QueryPets(string? searchString, AnimalSpecies? animalSpecies,
                                            AnimalGender? animalGender, int? age_gte, int? age_lte,
-                                           string sortOrder, int pageSize = 6, int pageNumber = 1)
+                                           string? sortOrder, int pageSize = 6, int pageNumber = 1)
     {
         IQueryable<Pet> finalPetObjects = from p in _context.Pets select p;
+        finalPetObjects = finalPetObjects.Where(c => c.Id != 0);
 
         // Searching
         if (!string.IsNullOrEmpty(searchString))
@@ -92,6 +94,10 @@ public class PetService
                     break;
             }
         }
+        else
+        {
+            finalPetObjects = finalPetObjects.OrderBy(p => p.Id);
+        }
 
         return await PaginatedList<Pet>.CreateAsyncList(finalPetObjects.AsNoTracking(), pageNumber, pageSize);
     }
@@ -103,15 +109,13 @@ public class PetService
         {
             return null;
         }
-        else
-        {
-            return pet;
-        }
+
+        return pet;
     }
 
     public async Task<List<Pet>> GetAllPets()
     {
-        return await _context.Pets.ToListAsync();
+        return await _context.Pets.Where(p => p.Id != 0).ToListAsync();
     }
 
     public async Task<Pet?> CreatePet(Pet pet)
@@ -124,10 +128,8 @@ public class PetService
         {
             return null;
         }
-        else
-        {
-            return createdPet;
-        }
+
+        return createdPet;
     }
 
     public async Task<Pet?> EditPet(Pet pet)
