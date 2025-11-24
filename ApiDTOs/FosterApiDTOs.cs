@@ -18,7 +18,7 @@ public class FosterOutputDTO
     public string? Description { get; private set; }
     public DateOnly StartDate { get; private set; } = default!;
     public DateOnly? EndDate { get; private set; }
-    public PetOutputDTO PetInfo { get; private set; } = default!;
+    public PetOutputDTO? PetInfo { get; private set; } = default!;
 
 
     public static FosterOutputDTO FromDbFoster(Foster foster)
@@ -30,7 +30,7 @@ public class FosterOutputDTO
             Description = foster.Description,
             StartDate = foster.StartDate,
             EndDate = foster.EndDate,
-            PetInfo = PetOutputDTO.FromDbPet(foster.Pet!)
+            PetInfo = foster.Pet != null ? PetOutputDTO.FromDbPet(foster.Pet) : null
         };
     }
 }

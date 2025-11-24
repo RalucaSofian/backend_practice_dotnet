@@ -134,7 +134,7 @@ public class PetsController : Controller
     [Route("create")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Id,Name,Species,Gender,Age,Description")] Pet pet)
+    public async Task<IActionResult> Create([Bind("Id,Name,Species,Gender,Age,Description,PhotoUrl")] Pet pet)
     {
         if (ModelState.IsValid)
         {
@@ -167,7 +167,7 @@ public class PetsController : Controller
     [Route("edit/{id}")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Species,Gender,Age,Description")] Pet pet)
+    public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Species,Gender,Age,Description,PhotoUrl")] Pet pet)
     {
         if (id != pet.Id)
         {

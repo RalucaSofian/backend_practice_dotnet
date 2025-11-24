@@ -115,7 +115,12 @@ public class PetService
 
     public async Task<List<Pet>> GetAllPets()
     {
-        return await _context.Pets.Where(p => p.Id != 0).ToListAsync();
+        return await GetBaseQuery().ToListAsync();
+    }
+
+    public async Task<int> GetTotalNrOfPets()
+    {
+        return await GetBaseQuery().CountAsync();
     }
 
     public async Task<Pet?> CreatePet(Pet pet)
@@ -165,5 +170,10 @@ public class PetService
     private bool PetExists(int id)
     {
         return _context.Pets.Any(e => e.Id == id);
+    }
+
+    private IQueryable<Pet> GetBaseQuery()
+    {
+        return _context.Pets.Where(p => p.Id != 0);
     }
 };

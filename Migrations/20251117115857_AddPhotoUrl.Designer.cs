@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PetRescue.Data;
 
@@ -10,9 +11,11 @@ using PetRescue.Data;
 namespace PetRescue.Migrations
 {
     [DbContext(typeof(PetRescueContext))]
-    partial class PetRescueContextModelSnapshot : ModelSnapshot
+    [Migration("20251117115857_AddPhotoUrl")]
+    partial class AddPhotoUrl
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.8");

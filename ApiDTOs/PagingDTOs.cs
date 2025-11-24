@@ -7,6 +7,7 @@ public class PaginatedListDTO<T>
 {
     public int PageNumber { get; private set; }
     public int TotalPages { get; private set; }
+    public int ItemCount { get; private set; }
     public List<T>? Items { get; private set; }
 
     public PaginatedListDTO() { }
@@ -20,6 +21,7 @@ public class PaginatedListDTO<T>
         {
             PageNumber = existingList.PageNumber,
             TotalPages = existingList.TotalPages,
+            ItemCount = existingList.ItemCount,
             Items = newItems
         };
 

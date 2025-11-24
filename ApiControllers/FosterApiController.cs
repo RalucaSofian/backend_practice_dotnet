@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 
 using PetRescue.ApiDTOs;
@@ -11,6 +12,7 @@ using PetRescue.Utilities;
 namespace PetRescue.ApiControllers;
 
 [ApiController]
+[EnableCors("default")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [Route("api/foster")]
 public class FosterApiController : ControllerBase
@@ -141,7 +143,7 @@ public class FosterApiController : ControllerBase
 
     private async Task<string> ValidateFosterDates(Foster foster)
     {
-        var foundFoster = await _fosterService.GetFosterForPet(foster);
+        var foundFoster = (await _fosterService.GetFosterForPet(foster.PetID)).Where(f => f.Id != foster.Id);
 
         if (foster.EndDate <= foster.StartDate)
         {

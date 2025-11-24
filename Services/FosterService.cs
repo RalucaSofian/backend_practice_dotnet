@@ -132,10 +132,51 @@ public class FosterService
         return await _context.Fosters.ToListAsync();
     }
 
-    public async Task<List<Foster>> GetFosterForPet(Foster foster)
+    public async Task<int> GetTotalNrOfFoster()
     {
-        var fosterList = await _context.Fosters.Where(f => f.PetID == foster.PetID && f.Id != foster.Id).ToListAsync();
+        return await _context.Fosters.CountAsync();
+    }
+
+    public async Task<List<Foster>> GetFosterForPet(int petId)
+    {
+        var fosterList = await _context.Fosters.Where(f => f.PetID == petId).ToListAsync();
         return fosterList;
+    }
+
+    public async Task<Foster?> GetActiveFosterForPet(int petId)
+    {
+        var dateToday = DateOnly.FromDateTime(DateTime.Now);
+        var fosterList = await GetFosterForPet(petId);
+
+        var activeFoster = fosterList.Where(f => f.StartDate <= dateToday && (f.EndDate >= dateToday || f.EndDate == null)).FirstOrDefault();
+        return activeFoster;
+    }
+
+    public async Task<int> GetNrOfFosteredPets()
+    {
+        return await _context.Fosters.Select(f => f.PetID).Distinct().CountAsync();
+    }
+
+    public async Task<float> GetAvgFosterDuration()
+    {
+        var fosters = await _context.Fosters.ToListAsync();
+        var totalFosterDuration = 0;
+        var nrOfFoster = 0;
+        foreach (var foster in fosters)
+        {
+            if (foster.EndDate.HasValue)
+            {
+                totalFosterDuration += foster.EndDate.Value.DayNumber - foster.StartDate.DayNumber;
+                nrOfFoster++;
+            }
+        }
+
+        float avgFosterDuration = 0;
+        if (nrOfFoster != 0)
+        {
+            avgFosterDuration = (float)totalFosterDuration / nrOfFoster;
+        }
+        return avgFosterDuration;
     }
 
     public async Task<Foster?> GetFoster(int id)

@@ -23,6 +23,16 @@ builder.Services.AddIdentity<PetRescue.Models.User, IdentityRole>(options => opt
     .AddDefaultTokenProviders()
     .AddEntityFrameworkStores<PetRescueContext>();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("default", policy =>
+    {
+        policy.WithOrigins("http://localhost:4200")
+        .AllowAnyHeader()
+        .AllowAnyMethod();
+    });
+});
+
 builder.Services.Configure<IdentityOptions>(options =>
 {
     // Password settings
@@ -88,6 +98,8 @@ app.UseCookiePolicy();
 
 app.UseHttpsRedirection();
 app.UseRouting();
+
+app.UseCors("default");
 
 app.UseAuthentication();
 app.UseAuthorization();

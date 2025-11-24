@@ -11,6 +11,13 @@ public class PetOutputDTO
     public string Gender { get; private set; } = default!;
     public int? Age { get; private set; }
     public string? Description { get; private set; }
+    public string PhotoUrl { get; private set; } = default!;
+    public FosterOutputDTO? ActiveFoster { get; private set; }
+
+    public void SetActiveFoster(Foster dbFoster)
+    {
+        this.ActiveFoster = FosterOutputDTO.FromDbFoster(dbFoster);
+    }
 
 
     public static PetOutputDTO FromDbPet(Pet pet)
@@ -22,7 +29,8 @@ public class PetOutputDTO
             Species = pet.Species.ToString(),
             Gender = pet.Gender.ToString(),
             Age = pet.Age,
-            Description = pet.Description
+            Description = pet.Description,
+            PhotoUrl = pet.PhotoUrl
         };
     }
 }

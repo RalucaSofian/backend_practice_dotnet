@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 
 using PetRescue.ApiDTOs;
@@ -8,14 +9,17 @@ using PetRescue.Services;
 namespace PetRescue.ApiControllers;
 
 [ApiController]
+[EnableCors("default")]
 [Route("api/pets")]
 public class PetApiController : ControllerBase
 {
     private readonly PetService _petService;
+    private readonly FosterService _fosterService;
 
-    public PetApiController(PetService petService)
+    public PetApiController(PetService petService, FosterService fosterService)
     {
         _petService = petService;
+        _fosterService = fosterService;
     }
 
 
@@ -40,7 +44,16 @@ public class PetApiController : ControllerBase
         //     outputPets.Add(PetOutputDTO.FromDbPet(pet));
         // }
 
-        var outputPets = queriedPets.Select(PetOutputDTO.FromDbPet);
+        var outputPets = queriedPets.Select(PetOutputDTO.FromDbPet).Select(pet =>
+        {
+            var activeFoster = _fosterService.GetActiveFosterForPet(pet.Id).Result;
+            if (activeFoster != null)
+            {
+                pet.SetActiveFoster(activeFoster);
+            }
+            return pet;
+        });
+
         var paginatedPets = PaginatedListDTO<PetOutputDTO>.ConvertList(outputPets.ToList(), queriedPets);
         return Ok(paginatedPets);
     }
@@ -56,6 +69,11 @@ public class PetApiController : ControllerBase
         }
 
         var outputPet = PetOutputDTO.FromDbPet(pet);
+        var activeFoster = await _fosterService.GetActiveFosterForPet(outputPet.Id);
+        if (activeFoster != null)
+        {
+            outputPet.SetActiveFoster(activeFoster);
+        }
         return Ok(outputPet);
     }
 }

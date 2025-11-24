@@ -27,7 +27,7 @@ public class FosterController : Controller
 
     private async Task ValidateFosterDates(Foster foster)
     {
-        var foundFoster = await _fosterService.GetFosterForPet(foster);
+        var foundFoster = (await _fosterService.GetFosterForPet(foster.PetID)).Where(f => f.Id != foster.Id);
 
         if (foundFoster.Any(f => f.EndDate == null && f.StartDate < foster.EndDate))
         {
