@@ -51,8 +51,8 @@ public class FosterController : Controller
     // GET: foster
     [Route("")]
     public async Task<IActionResult> Index(string searchString, string sortOrder,
-                                           DateOnly startDate_gte, DateOnly startDate_lt,
-                                           DateOnly endDate_gte, DateOnly endDate_lt,
+                                           DateOnly startDate_gte, DateOnly startDate_lte,
+                                           DateOnly endDate_gte, DateOnly endDate_lte,
                                            int clientId, int petId,
                                            int pageSize = 6, int pageNumber = 1)
     {
@@ -61,9 +61,9 @@ public class FosterController : Controller
             SearchString = string.IsNullOrEmpty(searchString) ? null : searchString,
             SortOrder = string.IsNullOrEmpty(sortOrder) ? null : sortOrder,
             StartDate_GTE = startDate_gte == DateOnly.MinValue ? null : startDate_gte,
-            StartDate_LT = startDate_lt == DateOnly.MinValue ? null : startDate_lt,
+            StartDate_LTE = startDate_lte == DateOnly.MinValue ? null : startDate_lte,
             EndDate_GTE = endDate_gte == DateOnly.MinValue ? null : endDate_gte,
-            EndDate_LT = endDate_lt == DateOnly.MinValue ? null : endDate_lt,
+            EndDate_LTE = endDate_lte == DateOnly.MinValue ? null : endDate_lte,
             ClientId = clientId == 0 ? null : clientId,
             PetId = petId == 0 ? null : petId,
             PageSize = pageSize,
@@ -87,9 +87,9 @@ public class FosterController : Controller
             ViewData["StartDateGteFilter"] = startDate_gte.ToString("o", CultureInfo.InvariantCulture);
         }
 
-        if (startDate_lt != DateOnly.MinValue)
+        if (startDate_lte != DateOnly.MinValue)
         {
-            ViewData["StartDateLtFilter"] = startDate_lt.ToString("o", CultureInfo.InvariantCulture);
+            ViewData["StartDateLtFilter"] = startDate_lte.ToString("o", CultureInfo.InvariantCulture);
         }
 
         if (endDate_gte != DateOnly.MinValue)
@@ -97,9 +97,9 @@ public class FosterController : Controller
             ViewData["EndDateGteFilter"] = endDate_gte.ToString("o", CultureInfo.InvariantCulture);
         }
 
-        if (endDate_lt != DateOnly.MinValue)
+        if (endDate_lte != DateOnly.MinValue)
         {
-            ViewData["EndDateLtFilter"] = endDate_lt.ToString("o", CultureInfo.InvariantCulture);
+            ViewData["EndDateLtFilter"] = endDate_lte.ToString("o", CultureInfo.InvariantCulture);
         }
 
         if (clientId != 0)

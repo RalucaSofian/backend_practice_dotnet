@@ -10,18 +10,28 @@ namespace PetRescue.Services;
 public class PetService
 {
     private readonly PetRescueContext _context;
+    private readonly FosterService _fosterService;
 
-    public PetService(PetRescueContext context)
+    public PetService(PetRescueContext context, FosterService fosterService)
     {
         _context = context;
+        _fosterService = fosterService;
     }
 
     public async Task<PaginatedList<Pet>> QueryPets(string? searchString, AnimalSpecies? animalSpecies,
-                                           AnimalGender? animalGender, int? age_gte, int? age_lte,
-                                           string? sortOrder, int pageSize = 6, int pageNumber = 1)
+                                           AnimalGender? animalGender, int? age_gte, int? age_lte, string? sortOrder,
+                                           DateOnly? fosterStartDate_gte, DateOnly? fosterStartDate_lte,
+                                           DateOnly? fosterEndDate_gte, DateOnly? fosterEndDate_lte,
+                                           int pageSize = 6, int pageNumber = 1)
     {
         IQueryable<Pet> finalPetObjects = from p in _context.Pets select p;
-        finalPetObjects = finalPetObjects.Where(c => c.Id != 0);
+        finalPetObjects = finalPetObjects.Where(p => p.Id != 0);
+
+        if (fosterStartDate_gte != null || fosterStartDate_lte != null || fosterEndDate_gte != null || fosterEndDate_lte != null)
+        {
+            var petIdsWithFoster = (await GetPetsByFosterDates(fosterStartDate_gte, fosterStartDate_lte, fosterEndDate_gte, fosterEndDate_lte)).Select(p => p.Id);
+            finalPetObjects = finalPetObjects.Where(p => petIdsWithFoster.Contains(p.Id));
+        }
 
         // Searching
         if (!string.IsNullOrEmpty(searchString))
@@ -121,6 +131,23 @@ public class PetService
     public async Task<int> GetTotalNrOfPets()
     {
         return await GetBaseQuery().CountAsync();
+    }
+
+    private async Task<List<Pet>> GetPetsByFosterDates(DateOnly? fosterStartDate_gte, DateOnly? fosterStartDate_lte,
+                                                       DateOnly? fosterEndDate_gte, DateOnly? fosterEndDate_lte)
+    {;
+        var fosterList = await _fosterService.GetFosterByDates(fosterStartDate_gte, fosterStartDate_lte, fosterEndDate_gte, fosterEndDate_lte);
+        var petsList = new List<Pet>();
+
+        foreach (var foster in fosterList)
+        {
+            if (foster.Pet != null)
+            {
+                petsList.Add(foster.Pet);
+            }
+        }
+
+        return petsList;
     }
 
     public async Task<Pet?> CreatePet(Pet pet)

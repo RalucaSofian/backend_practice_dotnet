@@ -26,7 +26,7 @@ public class PetsController : Controller
                                            string sortOrder, int pageSize = 6, int pageNumber = 1)
     {
         var finalPetObjects = await _petService.QueryPets(searchString, animalSpecies, animalGender,
-                                age_gte, age_lte, sortOrder, pageSize, pageNumber);
+                                age_gte, age_lte, sortOrder, null, null, null, null, pageSize, pageNumber);
 
         // Searching
         ViewData["SearchString"] = searchString;

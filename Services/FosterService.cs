@@ -14,9 +14,9 @@ public class FosterService
         public string? SearchString = null;
         public string? SortOrder = null;
         public DateOnly? StartDate_GTE = null;
-        public DateOnly? StartDate_LT = null;
+        public DateOnly? StartDate_LTE = null;
         public DateOnly? EndDate_GTE = null;
-        public DateOnly? EndDate_LT = null;
+        public DateOnly? EndDate_LTE = null;
         public int? ClientId = null;
         public int? PetId = null;
         public int PageSize = 6;
@@ -53,9 +53,9 @@ public class FosterService
             finalFosterObjects = finalFosterObjects.Where(fo => fo.StartDate >= queryOptions.StartDate_GTE);
         }
 
-        if (queryOptions.StartDate_LT != null)
+        if (queryOptions.StartDate_LTE != null)
         {
-            finalFosterObjects = finalFosterObjects.Where(fo => fo.StartDate < queryOptions.StartDate_LT);
+            finalFosterObjects = finalFosterObjects.Where(fo => fo.StartDate <= queryOptions.StartDate_LTE);
         }
 
         if (queryOptions.EndDate_GTE != null)
@@ -63,9 +63,9 @@ public class FosterService
             finalFosterObjects = finalFosterObjects.Where(fo => fo.EndDate >= queryOptions.EndDate_GTE);
         }
 
-        if (queryOptions.EndDate_LT != null)
+        if (queryOptions.EndDate_LTE != null)
         {
-            finalFosterObjects = finalFosterObjects.Where(fo => fo.EndDate < queryOptions.EndDate_LT);
+            finalFosterObjects = finalFosterObjects.Where(fo => fo.EndDate <= queryOptions.EndDate_LTE);
         }
 
         if (queryOptions.ClientId != null)
@@ -177,6 +177,35 @@ public class FosterService
             avgFosterDuration = (float)totalFosterDuration / nrOfFoster;
         }
         return avgFosterDuration;
+    }
+
+    public async Task<List<Foster>> GetFosterByDates(DateOnly? fosterStartDate_gte, DateOnly? fosterStartDate_lte,
+                                                     DateOnly? fosterEndDate_gte, DateOnly? fosterEndDate_lte)
+    {
+        var fosterObjects = _context.Fosters.Include(f => f.Pet);
+        IQueryable<Foster> finalFosterObjects = from fo in fosterObjects select fo;
+
+        if (fosterStartDate_gte != null)
+        {
+            finalFosterObjects = finalFosterObjects.Where(fo => fo.StartDate >= fosterStartDate_gte);
+        }
+
+        if (fosterStartDate_lte != null)
+        {
+            finalFosterObjects = finalFosterObjects.Where(fo => fo.StartDate <= fosterStartDate_lte);
+        }
+
+        if (fosterEndDate_gte != null)
+        {
+            finalFosterObjects = finalFosterObjects.Where(fo => fo.EndDate >= fosterEndDate_gte);
+        }
+
+        if (fosterEndDate_lte != null)
+        {
+            finalFosterObjects = finalFosterObjects.Where(fo => fo.EndDate <= fosterEndDate_lte);
+        }
+
+        return await finalFosterObjects.ToListAsync();
     }
 
     public async Task<Foster?> GetFoster(int id)

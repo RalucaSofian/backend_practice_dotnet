@@ -28,10 +28,13 @@ public class PetApiController : ControllerBase
     public async Task<ActionResult<PaginatedListDTO<PetOutputDTO>>> GetPets([FromQuery] string? searchString, [FromQuery] AnimalSpecies? animalSpecies,
                                                               [FromQuery] AnimalGender? animalGender, [FromQuery] int? age_gte,
                                                               [FromQuery] int? age_lte, [FromQuery] string? sortOrder,
+                                                              [FromQuery] DateOnly? fosterStartDate_gte, [FromQuery] DateOnly? fosterStartDate_lte,
+                                                              [FromQuery] DateOnly? fosterEndDate_gte, [FromQuery] DateOnly? fosterEndDate_lte,
                                                               [FromQuery] int pageSize = 6, [FromQuery] int pageNumber = 1)
     {
         var queriedPets = await _petService.QueryPets(searchString, animalSpecies,
-            animalGender, age_gte, age_lte, sortOrder, pageSize, pageNumber);
+            animalGender, age_gte, age_lte, sortOrder, fosterStartDate_gte, fosterStartDate_lte,
+            fosterEndDate_gte, fosterEndDate_lte, pageSize, pageNumber);
         if (queriedPets == null)
         {
             return NotFound();
@@ -53,6 +56,7 @@ public class PetApiController : ControllerBase
             }
             return pet;
         });
+
 
         var paginatedPets = PaginatedListDTO<PetOutputDTO>.ConvertList(outputPets.ToList(), queriedPets);
         return Ok(paginatedPets);
