@@ -111,10 +111,13 @@ public class UserService
         try
         {
             var dbUser = await GetUser(user.Id);
+            dbUser!.UserName = user.UserName;
             dbUser!.Email = user.Email;
             dbUser!.Role = user.Role;
             dbUser!.Name = user.Name;
+            dbUser!.PhoneNumber = user.PhoneNumber;
 
+            _context.Update(dbUser);
             await _context.SaveChangesAsync();
         }
         catch (DbUpdateConcurrencyException)

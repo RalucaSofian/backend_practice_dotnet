@@ -12,7 +12,10 @@ Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<PetRescueContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("PetRescueContext") ?? throw new InvalidOperationException("Connection string 'PetRescueContext' not found.")));
+{
+    options.UseSqlite(builder.Configuration.GetConnectionString("PetRescueContext") ?? throw new InvalidOperationException("Connection string 'PetRescueContext' not found."));
+    options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+});
 
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<ClientService>();

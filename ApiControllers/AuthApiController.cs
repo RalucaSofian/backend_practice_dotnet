@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
@@ -58,6 +59,11 @@ public class AuthApiController : ControllerBase
     [Route("signup")]
     public async Task<ActionResult<string>> Signup(RegisterInputDTO signupInput)
     {
+        if (signupInput.Password != signupInput.ConfirmPassword)
+        {
+            return BadRequest();
+        }
+
         var newUser = new User { UserName = signupInput.Email, Email = signupInput.Email, Role = UserRole.USER };
         var result = await _userManager.CreateAsync(newUser, signupInput.Password);
         if (!result.Succeeded)
@@ -96,6 +102,13 @@ public class AuthApiController : ControllerBase
     [Route("forgot_password")]
     public async Task<ActionResult> ForgotPassword(ForgotPasswordInputDTO forgotPasswordInput)
     {
+        Regex emailRegex = new Regex(@"^([\w\.\-]+)@([\w\-]+)((\.(\w){2,3})+)$");
+        Match matchEmail = emailRegex.Match(forgotPasswordInput.Email);
+        if (!matchEmail.Success)
+        {
+            return BadRequest();
+        }
+
         var user = await _userManager.FindByEmailAsync(forgotPasswordInput.Email);
         if (user == null)
         {
@@ -119,6 +132,12 @@ public class AuthApiController : ControllerBase
     [Route("reset_password")]
     public async Task<ActionResult> ResetPassword(ResetPasswordInputDTO resetPasswordInput)
     {
+        if (resetPasswordInput.Password != resetPasswordInput.ConfirmPassword)
+        {
+            Console.WriteLine("Passwords mismatch");
+            return BadRequest();
+        }
+
         var user = await _userManager.FindByEmailAsync(resetPasswordInput.Email);
         if (user == null)
         {
@@ -128,10 +147,13 @@ public class AuthApiController : ControllerBase
 
         var decodedCodeBytes = WebEncoders.Base64UrlDecode(resetPasswordInput.ResetCode);
         var decodedResetCode = Encoding.UTF8.GetString(decodedCodeBytes);
+        Console.WriteLine(decodedResetCode);
 
         var result = await _userManager.ResetPasswordAsync(user, decodedResetCode, resetPasswordInput.Password);
+        Console.WriteLine(result);
         if (!result.Succeeded)
         {
+            Console.WriteLine("Reset failed");
             return BadRequest();
         }
 
@@ -160,7 +182,7 @@ public class AuthApiController : ControllerBase
             issuer: "http://localhost:5128",
             audience: "http://localhost:5128",
             claims: claims,
-            expires: DateTime.Now.AddMinutes(30),
+            expires: DateTime.Now.AddHours(4),
             signingCredentials: signingCredentials
         );
 

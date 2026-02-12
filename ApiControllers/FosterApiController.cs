@@ -33,7 +33,7 @@ public class FosterApiController : ControllerBase
 
     [HttpGet]
     [Route("")]
-    public async Task<ActionResult<PaginatedListDTO<FosterOutputDTO>>> GetAllFoster()
+    public async Task<ActionResult<PaginatedListDTO<FosterOutputDTO>>> GetAllFoster([FromQuery] int pageSize = 6, [FromQuery] int pageNumber = 1)
     {
         var client = await GetCurrentClient();
         if (client == null)
@@ -44,8 +44,8 @@ public class FosterApiController : ControllerBase
         var fosterQueryOptions = new FosterService.QueryOptions
         {
             ClientId = client.Id,
-            PageSize = 6,
-            PageNumber = 1
+            PageSize = pageSize,
+            PageNumber = pageNumber
         };
         var queriedFoster = await _fosterService.QueryFoster(fosterQueryOptions);
         if (queriedFoster == null)
@@ -140,6 +140,7 @@ public class FosterApiController : ControllerBase
         }
         return client;
     }
+
 
     private async Task<string> ValidateFosterDates(Foster foster)
     {

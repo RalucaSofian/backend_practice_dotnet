@@ -172,7 +172,7 @@ namespace PetRescue.Migrations
 
                     b.HasIndex("UserID");
 
-                    b.ToTable("Clients");
+                    b.ToTable("Clients", (string)null);
                 });
 
             modelBuilder.Entity("PetRescue.Models.Foster", b =>
@@ -203,7 +203,7 @@ namespace PetRescue.Migrations
 
                     b.HasIndex("PetID");
 
-                    b.ToTable("Fosters");
+                    b.ToTable("Fosters", (string)null);
                 });
 
             modelBuilder.Entity("PetRescue.Models.Pet", b =>
@@ -236,7 +236,7 @@ namespace PetRescue.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Pets");
+                    b.ToTable("Pets", (string)null);
                 });
 
             modelBuilder.Entity("PetRescue.Models.User", b =>

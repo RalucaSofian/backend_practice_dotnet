@@ -119,7 +119,7 @@ public class ClientService
 
     public async Task<Client?> GetClientForUserId(string id)
     {
-        var client = await _context.Clients.FirstAsync(m => m.UserID == id);
+        var client = await _context.Clients.FirstOrDefaultAsync(m => m.UserID == id);
         if (client == null)
         {
             return null;

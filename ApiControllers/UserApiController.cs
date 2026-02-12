@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using Microsoft.AspNetCore.Cors;
 
 using PetRescue.Services;
 using PetRescue.Utilities;
@@ -11,6 +12,7 @@ using PetRescue.ApiDTOs;
 namespace PetRescue.ApiControllers;
 
 [ApiController]
+[EnableCors("default")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [Route("api/users")]
 public class UserApiController : ControllerBase
@@ -61,7 +63,7 @@ public class UserApiController : ControllerBase
         {
             return NotFound();
         }
-        
+
         var outputUser = UserOutputDTO.FromDbUser(editedUser);
         return Ok(outputUser);
     }
